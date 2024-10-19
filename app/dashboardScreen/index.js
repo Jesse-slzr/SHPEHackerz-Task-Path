@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Dimensions } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faBars, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-icons'; // Import specific icons
+import { BarChart } from 'react-native-chart-kit'; // Import BarChart
 
 // Styles for the component
 const styles = {
@@ -30,6 +31,7 @@ const styles = {
   graphSection: {
     marginVertical: 10, // Vertical spacing for the graph section
     paddingHorizontal: 16, // Padding around the title
+    alignSelf: 'center', // Center the bubble horizontally
   },
   recentTasks: {
     fontSize: 20, // Font size for recent tasks heading
@@ -62,10 +64,38 @@ const styles = {
 
 const DashboardScreen = () => {
   // Sample data for recent tasks
-  const recentTasks = [
-    { id: '1', date: '10/18/24', taskName: 'Task 1', taskStatus: 'Completed', rewardAMT: '5', childID: '1'},
-    { id: '2', date: '10/19/24', taskName: 'Task 2', taskStatus: 'Completed', rewardAMT: '5', childID: '1'},
-  ];
+  const [recentTasks, setRecentTasks] = useState([
+    { id: '1', date: '2024-10-16', taskName: 'Task 1', taskStatus: 'Completed', rewardAMT: '5', childID: '1' },
+    { id: '2', date: '2024-10-16', taskName: 'Task 2', taskStatus: 'Completed', rewardAMT: '5', childID: '1' },
+    { id: '3', date: '2024-10-16', taskName: 'Task 3', taskStatus: 'In Progress', rewardAMT: '5', childID: '2' },
+    { id: '4', date: '2024-10-19', taskName: 'Task 4', taskStatus: 'Completed', rewardAMT: '10', childID: '2' },
+    { id: '5', date: '2024-10-19', taskName: 'Task 5', taskStatus: 'Completed', rewardAMT: '10', childID: '1' },
+  ]);
+
+  const getTaskDataForWeek = () => {
+    const taskCountPerDay = Array(7).fill(0); // Array with 7 entries for each day (Mon-Sun)
+
+    // Get current date to determine the week
+    const currentDate = new Date();
+    
+    // Iterate through the tasks and increase the count for the corresponding day
+    recentTasks.forEach(task => {
+      if (task.taskStatus === 'Completed') { // Only count completed tasks
+        const taskDate = new Date(task.date);
+        
+        // Check if the task is within the current week
+        const dayDiff = Math.floor((currentDate - taskDate) / (1000 * 60 * 60 * 24));
+        if (dayDiff >= 0 && dayDiff < 7) { // Task is in this week
+          taskCountPerDay[taskDate.getDay()] += 1;
+        }
+      }
+    });
+
+    return taskCountPerDay;
+  };
+
+  const taskDataForWeek = getTaskDataForWeek();
+
 
   // Render each task in the recent tasks list
   const renderItem = ({ item }) => (
@@ -115,8 +145,28 @@ const DashboardScreen = () => {
       <View style={styles.graphSection}>
         <Text style={{ fontSize: 20 }}>This week</Text>
         <Text style={{ fontSize: 40, fontWeight: 'bold' }}>1 Tasks</Text>
-        {/* Placeholder for bar graph visualization */}
-        <View style={{ height: 150, backgroundColor: '#E0E0E0', borderRadius: 10 }} />
+        <BarChart
+          data={{
+            labels: ['M', 'T', 'W', 'TH', 'F', 'S', 'S'], // Days of the week
+            datasets: [{ data: taskDataForWeek }] // Task data per day
+          }}
+          width={Dimensions.get('window').width - 30} // Width of the chart
+          height={170}
+          fromNumber={Math.max(...taskDataForWeek) > 4 ? Math.max(...taskDataForWeek) : 4 }
+          yAxisLabel=""
+          chartConfig={{
+            backgroundColor: '#A8D5BA',
+            backgroundGradientFrom: '#A8D5BA',
+            backgroundGradientTo: '#A8D5BA',
+            decimalPlaces: 0,
+            color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+          }}
+          style={{
+            borderRadius: 10,
+            marginVertical: 8,
+          }}
+        />
         {/* Button to generate a report */}
         <TouchableOpacity style={{ marginTop: 10, padding: 5, backgroundColor: '#A8D5BA', borderRadius: 15, width: '35%', alignSelf: 'center' }}>
           <Text style={{ color: '#000', textAlign: 'center' }}>Generate Report</Text>
