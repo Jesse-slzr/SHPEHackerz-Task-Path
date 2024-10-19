@@ -8,7 +8,7 @@ import { BarChart } from 'react-native-chart-kit'; // Import BarChart
 const styles = {
   container: {
     flex: 1, // Full height of the screen
-    backgroundColor: '#F4F4F4', // Light grey background
+    backgroundColor: '#FFF', // Light grey background
   },
   header: {
     padding: 16, // Padding around the header
@@ -18,20 +18,20 @@ const styles = {
     alignItems: 'center', // Center elements vertically
   },
   title: {
-    fontSize: 24, // Font size for the title
+    fontSize: 30, // Font size for the title
     fontWeight: 'bold', // Bold title font
     paddingHorizontal: 16, // Padding around the title
     paddingTop: 16, // Padding above the title
   },
   kidTabs: {
     flexDirection: 'row', // Arrange kid tabs in a row
-    marginVertical: 16, // Vertical spacing for tabs
+    marginTop: 16, // Vertical spacing for tabs
     paddingHorizontal: 16, // Padding around the title
   },
   graphSection: {
-    marginVertical: 10, // Vertical spacing for the graph section
+    marginBottom: 5, // Vertical spacing for the graph section
     paddingHorizontal: 16, // Padding around the title
-    alignSelf: 'center', // Center the bubble horizontally
+    // alignSelf: 'center', // Center the bubble horizontally
   },
   recentTasks: {
     fontSize: 20, // Font size for recent tasks heading
@@ -63,6 +63,8 @@ const styles = {
 };
 
 const DashboardScreen = () => {
+  const [selectedKid, setSelectedKid] = useState('1');
+
   // Sample data for recent tasks
   const [recentTasks, setRecentTasks] = useState([
     { id: '1', date: '2024-10-16', taskName: 'Task 1', taskStatus: 'Completed', rewardAMT: '5', childID: '1' },
@@ -78,15 +80,17 @@ const DashboardScreen = () => {
     // Get current date to determine the week
     const currentDate = new Date();
     
-    // Iterate through the tasks and increase the count for the corresponding day
-    recentTasks.forEach(task => {
+    // Filter tasks based on the selected kid
+    const filteredTasks = recentTasks.filter(task => task.childID === selectedKid);
+
+    // Iterate through the filtered tasks to count tasks per day
+    filteredTasks.forEach(task => {
       if (task.taskStatus === 'Completed') { // Only count completed tasks
         const taskDate = new Date(task.date);
-        
-        // Check if the task is within the current week
-        const dayDiff = Math.floor((currentDate - taskDate) / (1000 * 60 * 60 * 24));
-        if (dayDiff >= 0 && dayDiff < 7) { // Task is in this week
-          taskCountPerDay[taskDate.getDay()] += 1;
+        const dayDiff = Math.floor((currentDate - taskDate) / (1000 * 60 * 60 * 24)); // Difference in days
+
+        if (dayDiff >= 0 && dayDiff < 7) { // Task is within the current week
+          taskCountPerDay[taskDate.getDay()] += 1; // Increment task count for the respective day
         }
       }
     });
@@ -133,18 +137,37 @@ const DashboardScreen = () => {
 
       {/* Tabs to switch between kids */}
       <View style={styles.kidTabs}>
-        <TouchableOpacity style={{ padding: 10, borderBottomWidth: 2, borderBottomColor: '#000' }}>
+        <TouchableOpacity 
+          style={{ padding: 10, borderBottomWidth: selectedKid === '1' ? 2 : 0, borderBottomColor: '#000' }}
+          onPress={() => setSelectedKid('1')}
+        >
           <Text>Kid 1</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={{ padding: 10 }}>
+        <TouchableOpacity 
+          style={{ padding: 10, borderBottomWidth: selectedKid === '2' ? 2 : 0, borderBottomColor: '#000' }}
+          onPress={() => setSelectedKid('2')}
+        >
           <Text>Kid 2</Text>
         </TouchableOpacity>
       </View>
 
       {/* Section displaying tasks completed this week */}
       <View style={styles.graphSection}>
-        <Text style={{ fontSize: 20 }}>This week</Text>
-        <Text style={{ fontSize: 40, fontWeight: 'bold' }}>1 Tasks</Text>
+      <View style={{
+        margin: 20,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: 'baseline',
+      }}>
+        <Text style={{fontSize: 24, lineHeight: 24, fontWeight: 'bold' }}>
+          {taskDataForWeek.reduce((sum, val) => sum + val, 0)} Tasks
+        </Text>
+        <Text style={{fontSize: 20, lineHeight: 20}}>
+          This week
+        </Text>
+      </View>
+        {/* <Text style={{ fontSize: 20 }}>This week</Text>
+        <Text style={{ fontSize: 40, fontWeight: 'bold' }}>{taskDataForWeek.reduce((sum, val) => sum + val, 0)} Tasks</Text> */}
         <BarChart
           data={{
             labels: ['M', 'T', 'W', 'TH', 'F', 'S', 'S'], // Days of the week
@@ -155,16 +178,17 @@ const DashboardScreen = () => {
           fromNumber={Math.max(...taskDataForWeek) > 4 ? Math.max(...taskDataForWeek) : 4 }
           yAxisLabel=""
           chartConfig={{
-            backgroundColor: '#A8D5BA',
-            backgroundGradientFrom: '#A8D5BA',
-            backgroundGradientTo: '#A8D5BA',
+            backgroundColor: '#FFF',
+            backgroundGradientFrom: '#FFF',
+            backgroundGradientTo: '#FFF',
             decimalPlaces: 0,
-            color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            color: (opacity = 0) => `rgba(0,0,0, ${opacity})`,
+            labelColor: (opacity = 0) => `rgba(0, 0, 0, ${opacity})`,
           }}
           style={{
             borderRadius: 10,
             marginVertical: 8,
+            alignSelf: 'center'
           }}
         />
         {/* Button to generate a report */}
