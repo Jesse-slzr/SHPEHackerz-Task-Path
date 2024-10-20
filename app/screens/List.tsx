@@ -1,5 +1,5 @@
 
-import { View, Text, Button } from 'react-native';
+/*import { View, Text, Button } from 'react-native';
 import React from 'react'
 import { NavigationProp } from '@react-navigation/native';
 import { FIREBASE_AUTH } from '@/FirebaseConfig';
@@ -21,5 +21,19 @@ return
     </View>
     );
 };
+
+export default List*/
+
+import { View, Text } from 'react-native';
+import React from 'react'
+
+const List = () =>
+{
+return (
+    <View>
+        <Text>List</Text>
+    </View>
+)    
+}
 
 export default List
