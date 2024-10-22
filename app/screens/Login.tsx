@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, ActivityIndicator, Button, KeyboardAvoidingView } from 'react-native'
 import React, { useState } from 'react'
-import { FIREBASE_AUTH } from 'FirebaseConfig';
+import { FIREBASE_AUTH } from '../../FirebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { TextInput } from 'react-native-gesture-handler';
 
