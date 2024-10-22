@@ -30,8 +30,7 @@ const styles = {
   },
   graphSection: {
     marginBottom: 5, // Vertical spacing for the graph section
-    paddingHorizontal: 16, // Padding around the title
-    // alignSelf: 'center', // Center the bubble horizontally
+    paddingHorizontal: 16, // Padding around the title 
   },
   recentTasks: {
     fontSize: 20, // Font size for recent tasks heading
@@ -73,6 +72,13 @@ const DashboardScreen = () => {
     { id: '4', date: '2024-10-19', taskName: 'Task 4', taskStatus: 'Completed', rewardAMT: '10', childID: '2' },
     { id: '5', date: '2024-10-19', taskName: 'Task 5', taskStatus: 'Completed', rewardAMT: '10', childID: '1' },
   ]);
+
+  // Function to sort recent tasks by date (most recent first)
+  const getSortedTasks = () => {
+    return recentTasks
+      .filter(task => task.taskStatus === 'Completed') // Only include tasks with status "Completed"
+      .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort tasks by date (most recent first)
+  };
 
   const getTaskDataForWeek = () => {
     const taskCountPerDay = Array(7).fill(0); // Array with 7 entries for each day (Mon-Sun)
@@ -166,8 +172,6 @@ const DashboardScreen = () => {
           This week
         </Text>
       </View>
-        {/* <Text style={{ fontSize: 20 }}>This week</Text>
-        <Text style={{ fontSize: 40, fontWeight: 'bold' }}>{taskDataForWeek.reduce((sum, val) => sum + val, 0)} Tasks</Text> */}
         <BarChart
           data={{
             labels: ['M', 'T', 'W', 'TH', 'F', 'S', 'S'], // Days of the week
@@ -200,7 +204,7 @@ const DashboardScreen = () => {
       {/* Recent tasks section */}
       <Text style={styles.recentTasks}>Recent Tasks</Text>
       <FlatList
-        data={recentTasks} // Data source for the FlatList
+        data={getSortedTasks()} // Data source for the FlatList
         keyExtractor={(item) => item.id} // Unique key for each task
         renderItem={renderItem} // Function to render each task
         ListEmptyComponent={<Text>No recent tasks.</Text>} // Message when no tasks are present
