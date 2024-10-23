@@ -109,9 +109,15 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
+<<<<<<< HEAD
     namespace 'com.shpehackerz.taskpath'
     defaultConfig {
         applicationId 'com.shpehackerz.taskpath'
+=======
+    namespace 'com.anonymous.SHPEHackerzTaskPath'
+    defaultConfig {
+        applicationId 'com.anonymous.SHPEHackerzTaskPath'
+>>>>>>> b922ede1e36739dfe850ad89ed68039b80fc2f7d
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -199,5 +205,8 @@ if (rnVersion < versionToNumber(0, 75, 0)) {
     apply from: new File(["node", "--print", "require.resolve('@react-native-community/cli-platform-android/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim(), "../native_modules.gradle");
     applyNativeModulesAppBuildGradle(project)
 }
+<<<<<<< HEAD
 
 apply plugin: 'com.google.gms.google-services'
+=======
+>>>>>>> b922ede1e36739dfe850ad89ed68039b80fc2f7d
