@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { View, Text, FlatList, TextInput, Button, StyleSheet, TouchableOpacity } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faBars, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-icons';
+import { Link } from 'expo-router';
 
 const TaskScreen = ({ navigation }) => {
     const [taskName, setTaskName] = useState('');
@@ -46,9 +47,9 @@ const TaskScreen = ({ navigation }) => {
 
             {/* Bottom navigation with icons */}
             <View style={styles.bottomNavigation}>
-                <TouchableOpacity><FontAwesomeIcon icon={faTasks} size={24} color="black" /></TouchableOpacity>
-                <TouchableOpacity><FontAwesomeIcon icon={faChild} size={24} color="black" /></TouchableOpacity>
-                <TouchableOpacity><FontAwesomeIcon icon={faGift} size={24} color="black" /></TouchableOpacity>
+                <Link href="/dashboardScreens/TasksManagementScreen"><FontAwesomeIcon icon={faTasks} size={24} color="black" /></Link>
+                <Link href="/dashboardScreens/KidsManagementScreen"><FontAwesomeIcon icon={faChild} size={24} color="black" /></Link>
+                <Link href="/dashboardScreens/RewardsManagementScreen"><FontAwesomeIcon icon={faGift} size={24} color="black" /></Link>
             </View>
         </View>
     );

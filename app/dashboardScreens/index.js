@@ -3,6 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, Dimensions } from 'react-native
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faBars, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-icons'; // Import specific icons
 import { BarChart } from 'react-native-chart-kit'; // Import BarChart
+import { Link } from 'expo-router';
 
 const DashboardScreen = () => {
     const [selectedKid, setSelectedKid] = useState('1');
@@ -145,9 +146,9 @@ const DashboardScreen = () => {
             
             {/* Bottom navigation with icons */}
             <View style={styles.bottomNavigation}>
-                <TouchableOpacity><FontAwesomeIcon icon={faTasks} size={24} color="black" /></TouchableOpacity>
-                <TouchableOpacity><FontAwesomeIcon icon={faChild} size={24} color="black" /></TouchableOpacity>
-                <TouchableOpacity><FontAwesomeIcon icon={faGift} size={24} color="black" /></TouchableOpacity>
+                <Link href="/dashboardScreens/TasksManagementScreen"><FontAwesomeIcon icon={faTasks} size={24} color="black" /></Link>
+                <Link href="/dashboardScreens/KidsManagementScreen"><FontAwesomeIcon icon={faChild} size={24} color="black" /></Link>
+                <Link href="/dashboardScreens/RewardsManagementScreen"><FontAwesomeIcon icon={faGift} size={24} color="black" /></Link>
             </View>
         </View>
     );

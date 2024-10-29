@@ -55,7 +55,7 @@ return (
                 ) : (
                     <>
                     <View style={styles.buttonContainer}>
-                    <Button title="Login" onPress={signIn} />
+                        <Button title="Login" onPress={signIn} />
                     </View>
                     <View style={styles.buttonContainer}>
                     <Button title="Create Account" onPress={signUp} />

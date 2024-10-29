@@ -1,22 +1,23 @@
-// KidsManagementScreen.js
+// RewardManagementScreen.js
 import React, { useState } from 'react';
 import { View, Text, FlatList, TextInput, Button, StyleSheet, TouchableOpacity } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faBars, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-icons';
+import { Link } from 'expo-router';
 
-const KidsManagementScreen = ({ navigation }) => {
-    const [kidName, setKidName] = useState('');
-    const [kids, setKids] = useState([]);
+const RewardManagementScreen = ({ navigation }) => {
+    const [rewardName, setRewardName] = useState('');
+    const [rewards, setRewards] = useState([]);
 
-    const addKid = () => {
-        if (kidName) {
-            setKids([...kids, { id: Math.random().toString(), name: kidName }]);
-            setKidName(''); // Clear the input field
+    const addReward = () => {
+        if (rewardName) {
+            setRewards([...rewards, { id: Math.random().toString(), name: rewardName }]);
+            setRewardName(''); // Clear the input field
         }
     };
 
-    const renderKid = ({ item }) => (
-        <View style={styles.kidItem}>
+    const renderReward = ({ item }) => (
+        <View style={styles.rewardItem}>
             <Text>{item.name}</Text>
         </View>
     );
@@ -26,29 +27,29 @@ const KidsManagementScreen = ({ navigation }) => {
             {/* Header with settings and navigation to kids view */}
             <View style={styles.header}>
                 <TouchableOpacity style={styles.headerButton}>
-                    <FontAwesomeIcon icon={faBars} size={24} color="black" />
+                <FontAwesomeIcon icon={faBars} size={24} color="black" />
                 </TouchableOpacity>
             </View>
 
-            <Text style={styles.title}>Manage Kids</Text>
+            <Text style={styles.title}>Manage Rewards</Text>
             <TextInput
                 style={styles.input}
-                placeholder="Enter kid name"
-                value={kidName}
-                onChangeText={setKidName}
+                placeholder="Enter reward name"
+                value={rewardName}
+                onChangeText={setRewardName}
             />
-            <Button title="Add Kid" onPress={addKid} />
+            <Button title="Add Reward" onPress={addReward} />
             <FlatList
-                data={kids}
+                data={rewards}
                 keyExtractor={(item) => item.id}
-                renderItem={renderKid}
+                renderItem={renderReward}
             />
 
             {/* Bottom navigation with icons */}
             <View style={styles.bottomNavigation}>
-                <TouchableOpacity><FontAwesomeIcon icon={faTasks} size={24} color="black" /></TouchableOpacity>
-                <TouchableOpacity><FontAwesomeIcon icon={faChild} size={24} color="black" /></TouchableOpacity>
-                <TouchableOpacity><FontAwesomeIcon icon={faGift} size={24} color="black" /></TouchableOpacity>
+                <Link href="/dashboardScreens/TasksManagementScreen"><FontAwesomeIcon icon={faTasks} size={24} color="black" /></Link>
+                <Link href="/dashboardScreens/KidsManagementScreen"><FontAwesomeIcon icon={faChild} size={24} color="black" /></Link>
+                <Link href="/dashboardScreens/RewardsManagementScreen"><FontAwesomeIcon icon={faGift} size={24} color="black" /></Link>
             </View>
         </View>
     );
@@ -59,8 +60,8 @@ const styles = StyleSheet.create({
     header: { padding: 16, backgroundColor: '#A8D5BA', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
     input: { borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 10 },
-    kidItem: { padding: 10, borderBottomWidth: 1, borderBottomColor: '#ccc' },
+    rewardItem: { padding: 10, borderBottomWidth: 1, borderBottomColor: '#ccc' },
     bottomNavigation: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20, backgroundColor: '#A8D5BA', padding: 16 },
 });
 
-export default KidsManagementScreen;
+export default RewardManagementScreen;
