@@ -1,8 +1,12 @@
 import { View, Text, StyleSheet, ActivityIndicator, Button, KeyboardAvoidingView } from 'react-native'
 import React, { useState } from 'react'
+<<<<<<< HEAD:app/Login.tsx
 import { FIREBASE_AUTH } from '@/FirebaseConfig';
+=======
+import { FIREBASE_AUTH } from '../../FirebaseConfig';
+>>>>>>> 1b990adf4aebe3601dfa3f86375ffd2e80828d93:app/userAuthentication/Login.tsx
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { TextInput } from 'react-native-gesture-handler';
+import { TextInput, GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -40,29 +44,31 @@ const signUp = async () => {
 }
 
 return (
-    <View style={styles.container}>
-      <KeyboardAvoidingView behavior='padding'>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <View style={styles.container}>
+                <KeyboardAvoidingView behavior='padding'>
 
-      <TextInput value={email} style={styles.input} placeholder="Email" 
-      autoCapitalize="none" onChangeText={(text) => setEmail(text)} />
+                <TextInput value={email} style={styles.input} placeholder="Email" 
+                autoCapitalize="none" onChangeText={(text) => setEmail(text)} />
 
-      <TextInput secureTextEntry={true} value={password} style={styles.input} placeholder="Password" 
-      autoCapitalize='none' onChangeText={(text) => setPassword(text)}/>
+                <TextInput secureTextEntry={true} value={password} style={styles.input} placeholder="Password" 
+                autoCapitalize='none' onChangeText={(text) => setPassword(text)}/>
 
-      { loading ? ( 
-        <ActivityIndicator size="large" color="#fffff" />
-      ) : (
-        <>
-        <View style={styles.buttonContainer}>
-          <Button title="Login" onPress={signIn} />
-          </View>
-        <View style={styles.buttonContainer}>
-          <Button title="Create Account" onPress={signUp} />
-          </View>
-        </>
-      )}
-      </KeyboardAvoidingView>
-    </View>
+                { loading ? ( 
+                    <ActivityIndicator size="large" color="#fffff" />
+                ) : (
+                    <>
+                    <View style={styles.buttonContainer}>
+                        <Button title="Login" onPress={signIn} />
+                    </View>
+                    <View style={styles.buttonContainer}>
+                    <Button title="Create Account" onPress={signUp} />
+                    </View>
+                    </>
+                )}
+                </KeyboardAvoidingView>
+            </View>
+        </GestureHandlerRootView>
     );
 };
 
