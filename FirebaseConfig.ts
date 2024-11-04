@@ -6,15 +6,14 @@ import { getAnalytics, isSupported } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
- const firebaseConfig = {
-   apiKey: "AIzaSyC_1sy5dOpisyJ2ViwC3IDZEfGVodW5Sbk",
-   authDomain: "task-path.firebaseapp.com",
-   projectId: "task-path",
-   storageBucket: "task-path.appspot.com",
-   messagingSenderId: "514036720601",
-   appId: "1:514036720601:web:1756216c6b3c141b1cefc8",
-   measurementId: "G-79VC5XRKCD"
- };
+const firebaseConfig = {
+  apiKey: "AIzaSyCYmiwZjG3wzRK60y1qatp0ByHuuRIc5eI",
+  authDomain: "taskpath-bd90f.firebaseapp.com",
+  projectId: "taskpath-bd90f",
+  storageBucket: "taskpath-bd90f.firebasestorage.app",
+  messagingSenderId: "111821687357",
+  appId: "1:111821687357:web:3dc1a83fd4066dc938b854"
+};
 
 // // Initialize Firebase
  export const FIREBASE_APP = initializeApp(firebaseConfig);
