@@ -24,10 +24,13 @@ export default function RootLayout() {
 		if (initializing) return;
 
 		const inAuthGroup = segments[0] === '(auth)';
+        const isHomeScreen = segments[1] === 'SignOut';
 
-		if (user && inAuthGroup) {
+		if (user && inAuthGroup && !isHomeScreen) {
+            console.log('Redirecting to /dashboardScreens');
 			router.replace('/screens/dashboardScreens');
 		} else if (!user && !inAuthGroup) {
+            console.log('Redirecting to /Login');
             router.replace('/(auth)/Login');
 		}
 	}, [user, initializing, segments, router]);

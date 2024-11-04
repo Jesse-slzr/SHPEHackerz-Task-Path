@@ -1,7 +1,6 @@
 import { ImageBackground,View, Text, TextInput, StyleSheet, ActivityIndicator, Alert, Button, KeyboardAvoidingView } from 'react-native'
 import { FIREBASE_AUTH } from '../../FirebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useState } from 'react';
 import { FirebaseError } from 'firebase/app';
 
@@ -38,42 +37,42 @@ const Login = () => {
 
 	return (
         <ImageBackground
-      source={require('@/assets/images/app-background.png')}
-      resizeMode="cover"
-      style={styles.backgroundImage}
-    >
-		<View style={styles.container}>
-			<KeyboardAvoidingView behavior="padding">
-				<TextInput
-					style={styles.input}
-					value={email}
-					onChangeText={setEmail}
-					autoCapitalize="none"
-					keyboardType="email-address"
-					placeholder="Email"
-				/>
-				<TextInput
-					style={styles.input}
-					value={password}
-					onChangeText={setPassword}
-					secureTextEntry
-					placeholder="Password"
-				/>
-				{loading ? (
-					<ActivityIndicator size={'small'} style={{ margin: 28 }} />
-				) : (
-					<>
-						<View style={styles.buttonContainer}>
-                            <Button onPress={signIn} title="Login" />
-                        </View>
-                        <View style={styles.buttonContainer}>
-                            <Button onPress={signUp} title="Create account" />
-                        </View>
-						
-					</>
-				)}
-			</KeyboardAvoidingView>
-		</View>
+            source={require('@/assets/images/app-background.png')}
+            resizeMode="cover"
+            style={styles.backgroundImage}
+        >
+            <View style={styles.container}>
+                <KeyboardAvoidingView behavior="padding">
+                    <TextInput
+                        style={styles.input}
+                        value={email}
+                        onChangeText={setEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                        placeholder="Email"
+                    />
+                    <TextInput
+                        style={styles.input}
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry
+                        placeholder="Password"
+                    />
+                    {loading ? (
+                        <ActivityIndicator size={'small'} style={{ margin: 28 }} />
+                    ) : (
+                        <>
+                            <View style={styles.buttonContainer}>
+                                <Button onPress={signIn} title="Login" />
+                            </View>
+                            <View style={styles.buttonContainer}>
+                                <Button onPress={signUp} title="Create account" />
+                            </View>
+                            
+                        </>
+                    )}
+                </KeyboardAvoidingView>
+            </View>
         </ImageBackground>
 	);
 }

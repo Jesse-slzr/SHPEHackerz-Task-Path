@@ -3,9 +3,10 @@ import { View, Text, FlatList, TouchableOpacity, Dimensions } from 'react-native
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faBars, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-icons'; // Import specific icons
 import { BarChart } from 'react-native-chart-kit'; // Import BarChart
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 
 const DashboardScreen = () => {
+    const router = useRouter();
     const [selectedKid, setSelectedKid] = useState('1');
     const [selectedWeek, setSelectedWeek] = useState('This Week');
     
@@ -76,11 +77,11 @@ const DashboardScreen = () => {
         <View style={styles.container}>
             {/* Header with settings and navigation to kids view */}
             <View style={styles.header}>
-                <TouchableOpacity style={styles.headerButton}>
-                <FontAwesomeIcon icon={faBars} size={24} color="black" />
+                <TouchableOpacity onPress={() => router.push('/(auth)/SignOut')} style={styles.headerButton}>
+                    <FontAwesomeIcon icon={faBars} size={24} color="black" />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.kidsViewButton}>
-                <Text style={styles.kidsViewButtonText}>Enter Kids View</Text>
+                    <Text style={styles.kidsViewButtonText}>Enter Kids View</Text>
                 </TouchableOpacity>
             </View>
             
