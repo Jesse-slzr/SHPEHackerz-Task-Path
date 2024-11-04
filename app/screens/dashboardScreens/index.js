@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Dimensions } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faBars, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-icons'; // Import specific icons
+import { faGear, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-icons'; // Import specific icons
 import { BarChart } from 'react-native-chart-kit'; // Import BarChart
 import { Link, useRouter } from 'expo-router';
 
@@ -78,7 +78,7 @@ const DashboardScreen = () => {
             {/* Header with settings and navigation to kids view */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.push('/(auth)/SignOut')} style={styles.headerButton}>
-                    <FontAwesomeIcon icon={faBars} size={24} color="black" />
+                    <FontAwesomeIcon icon={faGear} size={24} color="black" />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.kidsViewButton}>
                     <Text style={styles.kidsViewButtonText}>Enter Kids View</Text>

@@ -2,12 +2,13 @@
 import React, { useState } from 'react';
 import { View, Text, FlatList, TextInput, Button, StyleSheet, TouchableOpacity } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faBars, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-icons';
-import { Link } from 'expo-router';
+import { faTasks, faChild, faGift, faHouse } from '@fortawesome/free-solid-svg-icons';
+import { Link, useRouter } from 'expo-router';
 
 const RewardManagementScreen = ({ navigation }) => {
     const [rewardName, setRewardName] = useState('');
     const [rewards, setRewards] = useState([]);
+    const router = useRouter();
 
     const addReward = () => {
         if (rewardName) {
@@ -26,8 +27,8 @@ const RewardManagementScreen = ({ navigation }) => {
         <View style={styles.container}>
             {/* Header with settings and navigation to kids view */}
             <View style={styles.header}>
-                <TouchableOpacity style={styles.headerButton}>
-                <FontAwesomeIcon icon={faBars} size={24} color="black" />
+                <TouchableOpacity onPress={() => router.push('/screens/dashboardScreens')} style={styles.headerButton}>
+                    <FontAwesomeIcon icon={faHouse} size={24} color="black" />
                 </TouchableOpacity>
             </View>
 

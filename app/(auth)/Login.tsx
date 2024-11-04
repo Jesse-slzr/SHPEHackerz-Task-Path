@@ -1,4 +1,4 @@
-import { ImageBackground,View, Text, TextInput, StyleSheet, ActivityIndicator, Alert, Button, KeyboardAvoidingView } from 'react-native'
+import { ImageBackground,View, Text, TextInput, StyleSheet, ActivityIndicator, Alert, Button, KeyboardAvoidingView, TouchableOpacity } from 'react-native'
 import { FIREBASE_AUTH } from '../../FirebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { useState } from 'react';
@@ -62,12 +62,19 @@ const Login = () => {
                         <ActivityIndicator size={'small'} style={{ margin: 28 }} />
                     ) : (
                         <>
-                            <View style={styles.buttonContainer}>
-                                <Button onPress={signIn} title="Login" />
-                            </View>
-                            <View style={styles.buttonContainer}>
-                                <Button onPress={signUp} title="Create account" />
-                            </View>
+                            <TouchableOpacity
+                                style={[styles.buttonContainer]}
+                                onPress={signIn}
+                            >
+                                <Text style={{ color: '#000' }}>Login</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.buttonContainer]}
+                                onPress={signUp}
+                            >
+                                <Text style={{ color: '#000' }}>Create account</Text>
+                            </TouchableOpacity>
                             
                         </>
                     )}
@@ -100,5 +107,14 @@ const styles = StyleSheet.create({
 	},
     buttonContainer: {
         marginVertical: 10,
+        borderRadius: 10,
+        backgroundColor: '#A8D5BA',
+        borderColor: '#fff',
+        borderWidth: 3,
+        padding: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '50%',
+        alignSelf: 'center'
     } 
 });
