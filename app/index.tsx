@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import {Text, View, StyleSheet, KeyboardAvoidingView, ActivityIndicator, Button} from 'react-native';
 import { TextInput } from 'react-native-gesture-handler';
 import auth from '@react-native-firebase/auth';
@@ -81,12 +80,3 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff'
     }
 });
-=======
-import { Redirect } from 'expo-router';
-
-const StartPage = () => {
-    return <Redirect href="/dashboardScreens" />;
-}
-
-export default StartPage
->>>>>>> 1b990adf4aebe3601dfa3f86375ffd2e80828d93
