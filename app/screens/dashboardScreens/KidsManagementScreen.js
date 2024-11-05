@@ -27,9 +27,6 @@ const KidsManagementScreen = ({ navigation }) => {
         <View style={styles.container}>
             {/* Header with settings and navigation to kids view */}
             <View style={styles.header}>
-                {/* <TouchableOpacity style={styles.headerButton}>
-                    <FontAwesomeIcon icon={faHouse} size={24} color="black" />
-                </TouchableOpacity> */}
                 <TouchableOpacity onPress={() => router.push('/screens/dashboardScreens')} style={styles.headerButton}>
                     <FontAwesomeIcon icon={faHouse} size={24} color="black" />
                 </TouchableOpacity>
