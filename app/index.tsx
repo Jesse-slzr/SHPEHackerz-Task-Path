@@ -4,6 +4,7 @@ import auth from '@react-native-firebase/auth';
 import {FirebaseError} from 'firebase/app';
 import { useState } from 'react';
 
+<<<<<<< HEAD
 export default function Index(){
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -63,6 +64,10 @@ export default function Index(){
             </KeyboardAvoidingView>
         </View>
     );
+=======
+const StartPage = () => {
+    return <Redirect href="/(auth)/Login" />;
+>>>>>>> 531085ee8577211644bf62b5f0efc19bbe7da2e9
 }
 
 const styles = StyleSheet.create({

@@ -2,12 +2,13 @@
 import React, { useState } from 'react';
 import { View, Text, FlatList, TextInput, Button, StyleSheet, TouchableOpacity } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faBars, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-icons';
-import { Link } from 'expo-router';
+import { faTasks, faChild, faGift, faHouse } from '@fortawesome/free-solid-svg-icons';
+import { Link, useRouter } from 'expo-router';
 
 const KidsManagementScreen = ({ navigation }) => {
     const [kidName, setKidName] = useState('');
     const [kids, setKids] = useState([]);
+    const router = useRouter();
 
     const addKid = () => {
         if (kidName) {
@@ -26,8 +27,11 @@ const KidsManagementScreen = ({ navigation }) => {
         <View style={styles.container}>
             {/* Header with settings and navigation to kids view */}
             <View style={styles.header}>
-                <TouchableOpacity style={styles.headerButton}>
-                    <FontAwesomeIcon icon={faBars} size={24} color="black" />
+                {/* <TouchableOpacity style={styles.headerButton}>
+                    <FontAwesomeIcon icon={faHouse} size={24} color="black" />
+                </TouchableOpacity> */}
+                <TouchableOpacity onPress={() => router.push('/screens/dashboardScreens')} style={styles.headerButton}>
+                    <FontAwesomeIcon icon={faHouse} size={24} color="black" />
                 </TouchableOpacity>
             </View>
 
@@ -47,9 +51,9 @@ const KidsManagementScreen = ({ navigation }) => {
 
             {/* Bottom navigation with icons */}
             <View style={styles.bottomNavigation}>
-                <Link href="/dashboardScreens/TasksManagementScreen"><FontAwesomeIcon icon={faTasks} size={24} color="black" /></Link>
-                <Link href="/dashboardScreens/KidsManagementScreen"><FontAwesomeIcon icon={faChild} size={24} color="black" /></Link>
-                <Link href="/dashboardScreens/RewardsManagementScreen"><FontAwesomeIcon icon={faGift} size={24} color="black" /></Link>
+                <Link href="/screens/dashboardScreens/TasksManagementScreen"><FontAwesomeIcon icon={faTasks} size={24} color="black" /></Link>
+                <Link href="/screens/dashboardScreens/KidsManagementScreen"><FontAwesomeIcon icon={faChild} size={24} color="black" /></Link>
+                <Link href="/screens/dashboardScreens/RewardsManagementScreen"><FontAwesomeIcon icon={faGift} size={24} color="black" /></Link>
             </View>
         </View>
     );

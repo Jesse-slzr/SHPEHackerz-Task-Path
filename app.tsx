@@ -2,9 +2,9 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, Text, View } from "react-native";
-import Login from "./app/screens/Login";
-import List from "./app/screens/List";
-import Details from './app/screens/Details';
+import Login from "./app/(auth)/Login";
+import List from "./app/screens/userAuthentication/List";
+import Details from './app/screens/userAuthentication/Details';
 import { useEffect, useState } from "react";
 import { User, onAuthStateChanged } from "firebase/auth";
 import { FIREBASE_AUTH } from "@/FirebaseConfig";
