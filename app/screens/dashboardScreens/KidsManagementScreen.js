@@ -84,10 +84,9 @@ const KidsManagementScreen = ({ navigation }) => {
             </View>
 
             {/* Button to open Add Kid modal */}
-            <Button
-                title="Add Kid" // Modified to always show "Add Kid"
-                onPress={openAddKidModal} // New onPress handler
-            />
+            <TouchableOpacity onPress={openAddKidModal} style={styles.addButton}> {/* Modified to use TouchableOpacity */}
+                <Text style={styles.addButtonText}>Add Kid</Text> {/* New Text component */}
+            </TouchableOpacity>
 
             {/* Kids List */}
             <FlatList
@@ -102,7 +101,7 @@ const KidsManagementScreen = ({ navigation }) => {
                 transparent={true}
                 animationType="slide"
             >
-                <View style={styles.modalContainer}> {/* New Modal for adding a kid */}
+                <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Add Kid</Text>
                         <TextInput
@@ -116,10 +115,17 @@ const KidsManagementScreen = ({ navigation }) => {
                             placeholder="Enter kid's age"
                             value={kidAge}
                             onChangeText={setKidAge}
-                            keyboardType="numeric" // Numeric keyboard for age
+                            keyboardType="numeric"
                         />
-                        <Button title="Add" onPress={addKid} />
-                        <Button title="Cancel" onPress={() => setAddModalVisible(false)} />
+                        {/* Replace Buttons with TouchableOpacity */}
+                        <View style={styles.modalButtonContainer}> {/* New View for buttons */}
+                            <TouchableOpacity onPress={addKid} style={styles.modalButton}> {/* New TouchableOpacity */}
+                                <Text style={styles.modalButtonText}>Add</Text> {/* New Text component */}
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => setAddModalVisible(false)} style={styles.modalButton}>
+                                <Text style={styles.modalButtonText}>Cancel</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -130,7 +136,7 @@ const KidsManagementScreen = ({ navigation }) => {
                 transparent={true}
                 animationType="slide"
             >
-                <View style={styles.modalContainer}> {/* New Modal for editing a kid */}
+                <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Edit Kid</Text>
                         <TextInput
@@ -146,8 +152,15 @@ const KidsManagementScreen = ({ navigation }) => {
                             onChangeText={setKidAge}
                             keyboardType="numeric"
                         />
-                        <Button title="Update" onPress={updateKid} />
-                        <Button title="Cancel" onPress={cancelEdit} />
+                        {/* Replace Buttons with TouchableOpacity */}
+                        <View style={styles.modalButtonContainer}> {/* New View for buttons */}
+                            <TouchableOpacity onPress={updateKid} style={styles.modalButton}>
+                                <Text style={styles.modalButtonText}>Update</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={cancelEdit} style={styles.modalButton}>
+                                <Text style={styles.modalButtonText}>Cancel</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -178,32 +191,49 @@ const styles = StyleSheet.create({
     },
     headerButton: { marginRight: 16 },
     title: { fontSize: 24, fontWeight: 'bold' },
-    input: { borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 10, width: '80%' },
+    input: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        padding: 10,
+        marginBottom: 10,
+        width: '80%',
+    },
+    addButton: { // New style for Add Kid button
+        backgroundColor: '#A8D5BA',
+        padding: 10,
+        margin: 20,
+        alignItems: 'center',
+        borderRadius: 5,
+    },
+    addButtonText: { // New style for Add Kid button text
+        fontSize: 18,
+        color: '#fff',
+    },
     kidItem: {
         flexDirection: 'row',
-        justifyContent: 'space-between', // Modified to space between
+        justifyContent: 'space-between',
         alignItems: 'center',
         padding: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#ccc',
     },
-    kidName: { flex: 1 }, // Ensure the name takes up available space
-    kidItemButtons: { flexDirection: 'row' }, // New style for buttons container
-    editButton: { marginRight: 10 }, // Style for edit button
-    deleteButton: {}, // Style for delete button
+    kidName: { flex: 1 },
+    kidItemButtons: { flexDirection: 'row' },
+    editButton: { marginRight: 10 },
+    deleteButton: {},
     bottomNavigation: {
         flexDirection: 'row',
         justifyContent: 'space-around',
         backgroundColor: '#A8D5BA',
         padding: 16,
     },
-    modalContainer: { // New styles for modal background
+    modalContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)', // Semi-transparent background
+        backgroundColor: 'rgba(0,0,0,0.5)',
     },
-    modalContent: { // New styles for modal content
+    modalContent: {
         width: '80%',
         backgroundColor: '#fff',
         padding: 20,
@@ -211,6 +241,23 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 20 },
+    modalButtonContainer: { // New style for modal buttons container
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        width: '100%',
+        marginTop: 20,
+    },
+    modalButton: { // New style for modal buttons
+        backgroundColor: '#A8D5BA',
+        padding: 10,
+        borderRadius: 5,
+        width: '40%',
+        alignItems: 'center',
+    },
+    modalButtonText: { // New style for modal button text
+        color: '#fff',
+        fontSize: 16,
+    },
 });
 
 export default KidsManagementScreen;
