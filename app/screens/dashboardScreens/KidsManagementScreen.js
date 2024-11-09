@@ -9,6 +9,7 @@ const KidsManagementScreen = ({ navigation }) => {
     const [kidName, setKidName] = useState('');
     const [kids, setKids] = useState([]);
     const router = useRouter();
+    const [editingKid, setEditingKid] = useState(null); // New code
 
     const addKid = () => {
         if (kidName) {
@@ -20,8 +21,31 @@ const KidsManagementScreen = ({ navigation }) => {
     const renderKid = ({ item }) => (
         <View style={styles.kidItem}>
             <Text>{item.name}</Text>
+            <TouchableOpacity onPress={() => startEditing(item)}>
+                <Text>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => deleteKid(item.id)}>
+                <Text>Delete</Text>
+            </TouchableOpacity>
         </View>
     );
+
+    const updateKid = () => {
+        if (kidName) {
+            setKids(kids.map(kid => kid.id === editingKid.id ? { ...kid, name: kidName } : kid));
+            setKidName(''); // Clear the input field
+            setEditingKid(null); // Clear the editing kid
+        }
+    };
+
+    const deleteKid = (id) => {
+        setKids(kids.filter(kid => kid.id !== id));
+    };
+
+    const startEditing = (kid) => {
+        setKidName(kid.name);
+        setEditingKid(kid);
+    };
 
     return (
         <View style={styles.container}>
@@ -39,7 +63,10 @@ const KidsManagementScreen = ({ navigation }) => {
                 value={kidName}
                 onChangeText={setKidName}
             />
-            <Button title="Add Kid" onPress={addKid} />
+            <Button
+                title={editingKid ? "Update Kid" : "Add Kid"}
+                onPress={editingKid ? updateKid : addKid}
+            />
             <FlatList
                 data={kids}
                 keyExtractor={(item) => item.id}
@@ -61,7 +88,7 @@ const styles = StyleSheet.create({
     header: { padding: 16, backgroundColor: '#A8D5BA', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
     input: { borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 10 },
-    kidItem: { padding: 10, borderBottomWidth: 1, borderBottomColor: '#ccc' },
+    kidItem: { padding: 10, borderBottomWidth: 1, borderBottomColor: '#ccc', flexDirection: 'row', justifyContent: 'space-between' }, // Modified code
     bottomNavigation: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20, backgroundColor: '#A8D5BA', padding: 16 },
 });
 
