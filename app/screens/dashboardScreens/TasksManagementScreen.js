@@ -176,7 +176,7 @@ const TaskScreen = ({ navigation }) => {
                         <TextInput style={styles.input} placeholder="Task Name" placeholderTextColor="#333" value={taskName} onChangeText={setTaskName} />
                         <TextInput style={styles.input} placeholder="Description" placeholderTextColor="#333" value={taskDescription} onChangeText={setTaskDescription} />
                         <TextInput style={styles.input} placeholder="Cost" placeholderTextColor="#333" keyboardType="numeric" value={taskCost} onChangeText={setTaskCost} />
-                        <Pressable style={styles.plusButtonStyle} onPress={() => setCreateTaskModalVisible(true)}>
+                        <Pressable style={styles.plusButtonStyle} onPress={addTaskToFirestore}>
                             <FontAwesome name="plus" size={12} color="black" />
                         </Pressable>
                         <Pressable style={styles.buttonClose} onPress={() => setCreateTaskModalVisible(false)}>
