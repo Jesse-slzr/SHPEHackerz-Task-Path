@@ -11,8 +11,7 @@ import uuid from 'react-native-uuid';
 
 const KidScreen = ({ navigation }) => {
     const [KidName, setKidName] = useState('');
-    const [KidDescription, setKidDescription] = useState('');
-    const [KidCost, setKidCost] = useState('');
+    const [KidAge, setKidAge] = useState('');
     const [Kids, setKids] = useState([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [createKidModalVisible, setCreateKidModalVisible] = useState(false);
@@ -25,18 +24,16 @@ const KidScreen = ({ navigation }) => {
             const docRef = await addDoc(collection(FIRESTORE_DB, 'Kids'), {
                 id: KidId,
                 name: KidName,
-                description: KidDescription,
-                cost: parseFloat(KidCost),
+                age: parseFloat(KidAge),
                 completed: false
             });
             console.log("Document written with ID: ", docRef.id);
             setKids((prevKids) => [
                 ...prevKids,
-                { id: docRef.id, name: KidName, description: KidDescription, cost: parseFloat(KidCost), completed: false }
+                { id: docRef.id, name: KidName, age: parseFloat(KidAge), completed: false }
             ]);
             setKidName('');
-            setKidDescription('');
-            setKidCost('');
+            setKidAge('');
             setCreateKidModalVisible(false);   
         } catch (error) {
             console.error("Error adding document: ", error);
@@ -49,8 +46,7 @@ const KidScreen = ({ navigation }) => {
             const fetchedKids = querySnapshot.docs.map((doc) => ({
                 id: doc.id,
                 name: doc.data().name,
-                description: doc.data().description,
-                cost: doc.data().cost,
+                age: doc.data().age,
                 completed: doc.data().completed
             }));
             setKids(fetchedKids);
@@ -59,18 +55,17 @@ const KidScreen = ({ navigation }) => {
         }
     };
 
-    const updateKid = async (KidId, updatedName, updatedDescription, updatedCost) => {
+    const updateKid = async (KidId, updatedName, updatedAge) => {
         try {
             const KidRef = doc(FIRESTORE_DB, 'Kids', KidId);
-            await updateDoc(KidRef, { name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) });
+            await updateDoc(KidRef, { name: updatedName, age: parseFloat(updatedAge) });
             setKids((prevKids) => prevKids.map((Kid) => 
-                Kid.id === KidId ? { ...Kid, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) } : Kid
+                Kid.id === KidId ? { ...Kid, name: updatedName, age: parseFloat(updatedAge) } : Kid
             ));
             setModalVisible(false);
             setSelectedKid(null);
             setKidName('');
-            setKidDescription('');
-            setKidCost('');
+            setKidAge('');
         } catch (error) {
             console.error("Error updating document: ", error);
         }
@@ -100,7 +95,7 @@ const KidScreen = ({ navigation }) => {
 
     const handleSave = () => {
         if (selectedKid) {
-            updateKid(selectedKid.id, selectedKid.name, selectedKid.description, selectedKid.cost);
+            updateKid(selectedKid.id, selectedKid.name, selectedKid.age);
         }
     };
 
@@ -140,11 +135,9 @@ const KidScreen = ({ navigation }) => {
                     <View style={styles.modalView}>
                         <Text style={{ marginBottom: 5, textAlign: 'center' }}>Kid Name:</Text>
                         <TextInput style={styles.input} placeholder="Edit Kid name" placeholderTextColor="#333" value={selectedKid ? selectedKid.name : ''} onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, name: text }))}/>
-                        <Text>Kid Description:</Text>
-                        <TextInput style={styles.input} value={selectedKid ? selectedKid.description : ''} onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, description: text }))} />
 
-                        <Text>Kid Cost:</Text>
-                        <TextInput style={styles.input} keyboardType="numeric" value={selectedKid ? String(selectedKid.cost) : ''} onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, cost: parseFloat(text) }))} />
+                        <Text>Kid Age:</Text>
+                        <TextInput style={styles.input} keyboardType="numeric" value={selectedKid ? String(selectedKid.age) : ''} onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, age: parseFloat(text) }))} />
 
                         <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
                             <Text style={styles.textStyle}>Save</Text>
@@ -174,8 +167,7 @@ const KidScreen = ({ navigation }) => {
                     <View style={styles.modalView}>
                         <Text style={{ marginVertical: 5, textAlign: 'center', fontWeight: 'bold' }}>Create Kid</Text>
                         <TextInput style={styles.input} placeholder="Kid Name" placeholderTextColor="#333" value={KidName} onChangeText={setKidName} />
-                        <TextInput style={styles.input} placeholder="Description" placeholderTextColor="#333" value={KidDescription} onChangeText={setKidDescription} />
-                        <TextInput style={styles.input} placeholder="Cost" placeholderTextColor="#333" keyboardType="numeric" value={KidCost} onChangeText={setKidCost} />
+                        <TextInput style={styles.input} placeholder="Age" placeholderTextColor="#333" keyboardType="numeric" value={KidAge} onChangeText={setKidAge} />
                         <Pressable style={styles.plusButtonStyle} onPress={addKidToFirestore}>
                             <FontAwesome name="plus" size={12} color="black" />
                         </Pressable>
