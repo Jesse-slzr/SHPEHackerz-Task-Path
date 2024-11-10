@@ -144,8 +144,15 @@ const TaskScreen = ({ navigation }) => {
                         <TextInput style={styles.input} value={selectedTask ? selectedTask.description : ''} onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, description: text }))} />
 
                         <Text>Task Cost:</Text>
-                        <TextInput style={styles.input} keyboardType="numeric" value={selectedTask ? String(selectedTask.cost) : ''} onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, cost: parseFloat(text) }))} />
-
+                        <TextInput 
+                            style={styles.input} 
+                            placeholder="Enter task cost" // Add placeholder
+                            placeholderTextColor="#333" 
+                            keyboardType="numeric" 
+                            value={selectedTask ? String(selectedTask.cost) : ''} 
+                            onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, cost: text.replace(/[^0-9]/g, '') }))} // Ensure only numeric input
+                        />
+                        
                         <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
                             <Text style={styles.textStyle}>Save</Text>
                         </Pressable>

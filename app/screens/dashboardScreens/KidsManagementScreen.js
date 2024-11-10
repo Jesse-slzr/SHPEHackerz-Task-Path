@@ -107,6 +107,13 @@ const KidScreen = ({ navigation }) => {
         }
     };
 
+    const handleKidNameChange = (text) => { // New function to handle KidName change
+        const formattedText = text.replace(/[^a-zA-Z\s]/g, ''); // Remove non-letter characters
+        const capitalizedText = formattedText.replace(/\b\w/g, char => char.toUpperCase()); // Capitalize first letter of each word
+        setKidName(capitalizedText);
+    };
+
+
     useEffect(() => {
         fetchKids();
     }, []);
