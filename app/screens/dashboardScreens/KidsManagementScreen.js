@@ -24,7 +24,7 @@ const KidScreen = ({ navigation }) => {
             const docRef = await addDoc(collection(FIRESTORE_DB, 'Kids'), {
                 id: KidId,
                 name: KidName,
-                age: parseFloat(KidAge),
+                age: parseFloat(KidAge) || 0,
                 completed: false
             });
             console.log("Document written with ID: ", docRef.id);
@@ -39,6 +39,8 @@ const KidScreen = ({ navigation }) => {
             console.error("Error adding document: ", error);
         }
     };
+
+    
 
     const fetchKids = async () => {
         try {
@@ -58,9 +60,9 @@ const KidScreen = ({ navigation }) => {
     const updateKid = async (KidId, updatedName, updatedAge) => {
         try {
             const KidRef = doc(FIRESTORE_DB, 'Kids', KidId);
-            await updateDoc(KidRef, { name: updatedName, age: parseFloat(updatedAge) });
+            await updateDoc(KidRef, { name: updatedName, age: parseFloat(updatedAge) || 0 });
             setKids((prevKids) => prevKids.map((Kid) => 
-                Kid.id === KidId ? { ...Kid, name: updatedName, age: parseFloat(updatedAge) } : Kid
+                Kid.id === KidId ? { ...Kid, name: updatedName, age: parseFloat(updatedAge) || 0 } : Kid
             ));
             setModalVisible(false);
             setSelectedKid(null);
@@ -134,10 +136,23 @@ const KidScreen = ({ navigation }) => {
                 <View style={styles.centeredView}>
                     <View style={styles.modalView}>
                         <Text style={{ marginBottom: 5, textAlign: 'center' }}>Kid Name:</Text>
-                        <TextInput style={styles.input} placeholder="Edit Kid name" placeholderTextColor="#333" value={selectedKid ? selectedKid.name : ''} onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, name: text }))}/>
+                        <TextInput 
+                            style={styles.input} 
+                            placeholder="Edit Kid name" 
+                            placeholderTextColor="#333" 
+                            value={selectedKid ? selectedKid.name : ''} 
+                            onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, name: text }))} 
+                        />
 
                         <Text>Kid Age:</Text>
-                        <TextInput style={styles.input} keyboardType="numeric" value={selectedKid ? String(selectedKid.age) : ''} onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, age: parseFloat(text) }))} />
+                        <TextInput 
+                            style={styles.input} 
+                            placeholder="Enter kid's age" // Add placeholder
+                            placeholderTextColor="#333" 
+                            keyboardType="numeric" 
+                            value={selectedKid ? String(selectedKid.age) : ''} 
+                            onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, age: text.replace(/[^0-9]/g, '') }))} // Ensure only numeric input
+                        />
 
                         <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
                             <Text style={styles.textStyle}>Save</Text>
