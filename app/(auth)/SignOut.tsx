@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { FIREBASE_AUTH } from '../../FirebaseConfig'; // Make sure this imports your auth instance
 import { useRouter } from 'expo-router';
+import { ColorProperties } from 'react-native-reanimated/lib/typescript/reanimated2/Colors';
 
 const Page = () => {
 	const [user, setUser] = useState<User | null>(null);
@@ -24,6 +25,8 @@ const Page = () => {
         });
     };
 
+    // settings page for user - buttons for the following: sign out 
+    // and back to dashboard and give options for color blindness
 	return (
 		<View>
 			<Text style={[styles.mainText]}>Logged in {user?.email}</Text>
