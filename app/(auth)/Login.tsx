@@ -1,4 +1,4 @@
-import { ImageBackground,View, Text, TextInput, StyleSheet, ActivityIndicator, Alert, Button, KeyboardAvoidingView, TouchableOpacity } from 'react-native'
+import { ImageBackground, Image, View, Text, TextInput, StyleSheet, ActivityIndicator, KeyboardAvoidingView, TouchableOpacity } from 'react-native'
 import { FIREBASE_AUTH } from '../../FirebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { useState } from 'react';
@@ -41,8 +41,13 @@ const Login = () => {
             resizeMode="cover"
             style={styles.backgroundImage}
         >
+            <Image
+                source={require('../../assets/images/TaskPath.png')}
+                style={styles.titleImage}
+            />
             <View style={styles.container}>
                 <KeyboardAvoidingView behavior="padding">
+                    
                     <TextInput
                         style={styles.input}
                         value={email}
@@ -92,7 +97,16 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
     },
+    titleImage: {
+        width: '100%',
+        height: '25%',
+        overflow: 'hidden',
+        justifyContent: 'center',
+        alignItems: 'center',
+        alignSelf: 'center',
+    },
 	container: {
+        marginTop: -300,
 		marginHorizontal: 20,
 		flex: 1,
 		justifyContent: 'center'

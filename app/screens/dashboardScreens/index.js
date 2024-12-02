@@ -80,7 +80,7 @@ const DashboardScreen = () => {
                 <TouchableOpacity onPress={() => router.push('/(auth)/SignOut')} style={styles.headerButton}>
                     <FontAwesomeIcon icon={faGear} size={24} color="black" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.kidsViewButton}>
+                <TouchableOpacity style={styles.kidsViewButton} onPress={() => router.push('/screens/kidsViewScreens')}>
                     <Text style={styles.kidsViewButtonText}>Enter Kids View</Text>
                 </TouchableOpacity>
             </View>
