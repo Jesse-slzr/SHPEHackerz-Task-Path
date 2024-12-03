@@ -1,4 +1,14 @@
-import { ImageBackground, Image, View, Text, TextInput, StyleSheet, ActivityIndicator, KeyboardAvoidingView, TouchableOpacity } from 'react-native'
+import { 
+    ImageBackground,
+    Image,
+    View,
+    KeyboardAvoidingView,
+    ActivityIndicator,
+    TextInput,
+    Pressable,
+    Text,
+    StyleSheet,
+} from 'react-native'
 import { FIREBASE_AUTH } from '../../FirebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { useState } from 'react';
@@ -10,6 +20,7 @@ const Login = () => {
 	const [loading, setLoading] = useState(false);
     const auth = FIREBASE_AUTH;
 
+    // Function to handle sign up
 	const signUp = async () => {
 		setLoading(true);
 		try {
@@ -23,6 +34,7 @@ const Login = () => {
 		}
 	};
 
+    // Function to handle sign in
 	const signIn = async () => {
 		setLoading(true);
 		try {
@@ -35,19 +47,31 @@ const Login = () => {
 		}
 	};
 
+    if (loading) {
+        return (
+        <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#0000ff" />
+            <Text>Loading Tasks...</Text>
+        </View>
+        );
+    }
+
 	return (
         <ImageBackground
             source={require('@/assets/images/app-background.png')}
             resizeMode="cover"
             style={styles.backgroundImage}
         >
+            {/* Title image */}
             <Image
                 source={require('../../assets/images/TaskPath.png')}
                 style={styles.titleImage}
             />
+
+            {/* Login form */}
             <View style={styles.container}>
-                <KeyboardAvoidingView behavior="padding">
-                    
+                <KeyboardAvoidingView behavior="padding">       
+                    {/* Inputs */}
                     <TextInput
                         style={styles.input}
                         value={email}
@@ -63,33 +87,27 @@ const Login = () => {
                         secureTextEntry
                         placeholder="Password"
                     />
-                    {loading ? (
-                        <ActivityIndicator size={'small'} style={{ margin: 28 }} />
-                    ) : (
-                        <>
-                            <TouchableOpacity
-                                style={[styles.buttonContainer]}
-                                onPress={signIn}
-                            >
-                                <Text style={{ color: '#000' }}>Login</Text>
-                            </TouchableOpacity>
+                    
+                    {/* Sign In Button */}
+                    <Pressable
+                        style={[styles.buttonContainer]}
+                        onPress={signIn}
+                    >
+                        <Text style={{ color: '#000' }}>Login</Text>
+                    </Pressable>
 
-                            <TouchableOpacity
-                                style={[styles.buttonContainer]}
-                                onPress={signUp}
-                            >
-                                <Text style={{ color: '#000' }}>Create account</Text>
-                            </TouchableOpacity>
-                            
-                        </>
-                    )}
+                    {/* Sign Up Button*/}
+                    <Pressable
+                        style={[styles.buttonContainer]}
+                        onPress={signUp}
+                    >
+                        <Text style={{ color: '#000' }}>Create account</Text>
+                    </Pressable>
                 </KeyboardAvoidingView>
             </View>
         </ImageBackground>
 	);
 }
-
-export default Login
 
 const styles = StyleSheet.create({
     backgroundImage: {
@@ -119,6 +137,11 @@ const styles = StyleSheet.create({
 		padding: 10,
 		backgroundColor: '#fff'
 	},
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     buttonContainer: {
         marginVertical: 10,
         borderRadius: 10,
@@ -132,3 +155,5 @@ const styles = StyleSheet.create({
         alignSelf: 'center'
     } 
 });
+
+export default Login

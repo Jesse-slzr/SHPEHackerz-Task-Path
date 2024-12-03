@@ -175,30 +175,128 @@ const formatDate = (date) => {
 
 // Styles for the component
 const styles = {
-  container: { flex: 1, backgroundColor: '#FFF' },
-  header: { padding: 16, backgroundColor: '#A8D5BA', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerButton: { padding: 10 },
-  kidsViewButton: { padding: 10, backgroundColor: '#fff', borderRadius: 10 },
-  kidsViewButtonText: { color: '#000', fontWeight: 'bold' },
-  title: { fontSize: 30, fontWeight: 'bold', paddingHorizontal: 16, paddingTop: 16 },
-  kidTabs: { flexDirection: 'row', marginTop: 16, paddingHorizontal: 16 },
-  tabButton: { padding: 10 },
-  selectedTab: { borderBottomWidth: 2, borderBottomColor: '#000' },
-  graphSection: { marginBottom: 5, paddingHorizontal: 16 },
-  taskSummary: { margin: 20, flexDirection: "row", justifyContent: "space-between", alignItems: 'baseline' },
-  taskSummaryCount: { fontSize: 24, lineHeight: 24, fontWeight: 'bold' },
-  taskSummaryText: { fontSize: 20, lineHeight: 20 },
-  chart: { borderRadius: 10, marginVertical: 8, alignSelf: 'center' },
-  reportButton: { marginTop: 10, padding: 5, backgroundColor: '#A8D5BA', borderRadius: 15, width: '35%', alignSelf: 'center' },
-  reportButtonText: { color: '#000', textAlign: 'center' },
-  recentTasks: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, paddingHorizontal: 16 },
-  taskBubble: { padding: 12, backgroundColor: '#E8F5E9', borderRadius: 40, borderColor: "#000", borderWidth: 1, marginBottom: 10, flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', width: '75%', alignSelf: 'center' },
-  taskDate: { width: '45%', marginBottom: 10 },
-  taskKidInfo: { width: '50%', marginBottom: 10 },
-  kidInfoText: { color: '#444444' },
-  taskName: { width: '45%', marginBottom: 10 },
-  taskNameText: { fontWeight: 'bold' },
-  bottomNavigation: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20, backgroundColor: '#A8D5BA', padding: 16 },
+    container: {
+        flex: 1,
+        backgroundColor: '#FFF'
+    },
+    header: {
+        padding: 16,
+        backgroundColor: '#A8D5BA',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center' },
+    headerButton: {
+        padding: 10
+    },
+    kidsViewButton: {
+        padding: 10,
+        backgroundColor: '#fff',
+        borderRadius: 10
+    },
+    kidsViewButtonText: {
+        color: '#000',
+        fontWeight: 'bold'
+    },
+    title: { 
+        fontSize: 30,
+        fontWeight: 'bold',
+        paddingHorizontal: 16,
+        paddingTop: 16
+    },
+    kidTabs: {
+        flexDirection: 'row',
+        marginTop: 16,
+        paddingHorizontal: 16
+    },
+    tabButton: { 
+        padding: 10 
+    },
+    selectedTab: {
+        borderBottomWidth: 2,
+        borderBottomColor: '#000'
+    },
+    graphSection: {
+        marginBottom: 5,
+        paddingHorizontal: 16
+    },
+    taskSummary: {
+        margin: 20,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: 'baseline'
+    },
+    taskSummaryCount: {
+        fontSize: 24,
+        lineHeight: 24,
+        fontWeight: 'bold'
+    },
+    taskSummaryText: {
+        fontSize: 20,
+        lineHeight: 20
+    },
+    chart: {
+        borderRadius: 10,
+        marginVertical: 8,
+        alignSelf: 'center'
+    },
+    reportButton: {
+        marginTop: 10,
+        padding: 5,
+        backgroundColor:
+        '#A8D5BA',
+        borderRadius: 15,
+        width: '35%',
+        alignSelf: 'center'
+    },
+    reportButtonText: {
+        color: '#000',
+        textAlign: 'center',
+    },
+    recentTasks: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 10,
+        paddingHorizontal: 16,
+    },
+    taskBubble: {
+        padding: 12,
+        backgroundColor: '#E8F5E9',
+        borderRadius: 40,
+        borderColor: '#000',
+        borderWidth: 1,
+        marginBottom: 10,
+        flex: 1,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'flex-start',
+        width: '75%',
+        alignSelf: 'center',
+    },
+    taskDate: {
+        width: '45%',
+        marginBottom: 10,
+    },
+    taskKidInfo: {
+        width: '50%',
+        marginBottom: 10,
+    },
+    kidInfoText: {
+        color: '#444444',
+    },
+    taskName: {
+        width: '45%',
+        marginBottom: 10,
+    },
+    taskNameText: {
+        fontWeight: 'bold',
+    },
+    bottomNavigation: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginTop: 20,
+        backgroundColor: '#A8D5BA',
+        padding: 16,
+    },        
 };
 
 export default DashboardScreen;

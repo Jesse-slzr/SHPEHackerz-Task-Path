@@ -24,6 +24,10 @@ const KidsSelectionScreen = () => {
     const [kids, setKids] = useState<Kid[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
 
+    useEffect(() => {
+        fetchKids();
+    }, []);
+
     const fetchKids = async () => {
         try {
             const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Kids'));
@@ -40,10 +44,6 @@ const KidsSelectionScreen = () => {
             setLoading(false);
         }
     };
-
-    useEffect(() => {
-        fetchKids();
-    }, []);
 
     const renderKid = ({ item }: { item: Kid }) => (
         <View style={styles.kidWrapper}>
@@ -76,6 +76,7 @@ const KidsSelectionScreen = () => {
 
     return (
         <View style={styles.container}>
+            {/* Exit Button Section */}
             <Pressable
                 style={styles.exitButton}
                 onPress={() => router.push({pathname:'/screens/dashboardScreens'})}

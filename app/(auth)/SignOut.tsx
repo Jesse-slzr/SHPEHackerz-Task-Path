@@ -1,13 +1,19 @@
-import { View, Text, Button, StyleSheet, TouchableOpacity } from 'react-native';
+import {
+    View, 
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+} from 'react-native';
 import { useEffect, useState } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
-import { FIREBASE_AUTH } from '../../FirebaseConfig'; // Make sure this imports your auth instance
+import { FIREBASE_AUTH } from '../../FirebaseConfig';
 import { useRouter } from 'expo-router';
 
 const Page = () => {
 	const [user, setUser] = useState<User | null>(null);
     const router = useRouter();
 
+    // Check if the user is logged in
 	useEffect(() => {
 		const unsubscribe = onAuthStateChanged(FIREBASE_AUTH, (currentUser: User | null) => {
 			setUser(currentUser);
@@ -16,6 +22,7 @@ const Page = () => {
 		return () => unsubscribe();
 	}, []);
 
+    // Handle sign out
     const handleSignOut = () => {
         FIREBASE_AUTH.signOut().then(() => {
             router.replace('/(auth)/Login');
@@ -36,8 +43,6 @@ const Page = () => {
 		</View>
 	);
 };
-
-export default Page;
 
 const styles = StyleSheet.create({
     mainText: {
@@ -60,3 +65,5 @@ const styles = StyleSheet.create({
         alignSelf: 'center'
     }
 });
+
+export default Page;

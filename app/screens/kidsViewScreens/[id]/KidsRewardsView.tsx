@@ -12,12 +12,16 @@ interface Reward {
     completed: boolean
 }
 
-export default function KidsRewardsView() {
+const KidsRewardsView = () => {
     const params = useLocalSearchParams<{ id: string, name: string, age: string, completed: string }>();
     const kidId = params.id;
     const [rewards, setRewards] = useState<Reward[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
 
+    useEffect(() => {
+        fetchRewards();
+    }, [kidId]);
+    
     const fetchRewards = async () => {
         try {
             const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Rewards'));
@@ -35,10 +39,6 @@ export default function KidsRewardsView() {
             setLoading(false);
         }
     };
-
-    useEffect(() => {
-        fetchRewards();
-    }, [kidId]);
 
     return (
         <View style={styles.container}>
@@ -188,3 +188,5 @@ const styles = StyleSheet.create({
         color: '#555',
     },
 });
+
+export default KidsRewardsView;

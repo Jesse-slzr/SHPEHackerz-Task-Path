@@ -1,5 +1,13 @@
 import { useLocalSearchParams, router } from 'expo-router';
-import { View, Text, FlatList, StyleSheet, Pressable, Image } from 'react-native';
+import {
+    View,
+    Text,
+    FlatList,
+    StyleSheet,
+    Pressable,
+    ActivityIndicator,
+    Image
+} from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../../FirebaseConfig';
@@ -17,6 +25,10 @@ const KidScreen = () => {
     const kidId = params.id;
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+
+    useEffect(() => {
+        fetchTasks();
+    }, [kidId]);
 
     const fetchTasks = async () => {
         try {
@@ -36,13 +48,18 @@ const KidScreen = () => {
         }
     };
 
-    useEffect(() => {
-        fetchTasks();
-    }, [kidId]);
+    if (loading) {
+        return (
+        <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#0000ff" />
+            <Text>Loading Tasks...</Text>
+        </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
-            {/* Header Section */}
+            {/* Kid Info Header Section */}
             <View style={styles.header}>
                 <View>
                     <Text style={styles.kidName}>{params.name}</Text>
@@ -54,36 +71,33 @@ const KidScreen = () => {
                 />
             </View>
 
-        {/* Button Section */}
-        <View style={styles.buttonContainer}>
-            <Pressable
-            style={[styles.button, styles.rewardsButton]}
-            onPress={() =>
-                router.push({
-                pathname: '/screens/kidsViewScreens/[id]/KidsRewardsView',
-                params: { id: params.id, name: params.name },
-                })
-            }
-            >
-            <Text style={styles.buttonText}>Rewards</Text>
-            </Pressable>
-            <Pressable
-            style={[styles.button, styles.tasksButton]}
-            onPress={() =>
-                router.push({
-                pathname: '/screens/kidsViewScreens/[id]',
-                params: { id: params.id, name: params.name },
-                })
-            }
-            >
-            <Text style={styles.buttonText}>Tasks</Text>
-            </Pressable>
-        </View>
+            {/* Rewards/Tasks Button Section */}
+            <View style={styles.buttonContainer}>
+                <Pressable
+                style={[styles.button, styles.rewardsButton]}
+                onPress={() =>
+                    router.push({
+                    pathname: '/screens/kidsViewScreens/[id]/KidsRewardsView',
+                    params: { id: params.id, name: params.name },
+                    })
+                }
+                >
+                    <Text style={styles.buttonText}>Rewards</Text>
+                </Pressable>
+                <Pressable
+                style={[styles.button, styles.tasksButton]}
+                onPress={() =>
+                    router.push({
+                    pathname: '/screens/kidsViewScreens/[id]',
+                    params: { id: params.id, name: params.name },
+                    })
+                }
+                >
+                    <Text style={styles.buttonText}>Tasks</Text>
+                </Pressable>
+            </View>
 
-        {/* Task List */}
-        {loading ? (
-            <Text>Loading...</Text>
-        ) : (
+            {/* Task List */}
             <FlatList
                 data={tasks}
                 keyExtractor={(item) => item.id}
@@ -98,7 +112,6 @@ const KidScreen = () => {
                     </View>
                 )}
             />
-        )}
         </View>
     );
 };
@@ -156,6 +169,11 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#333',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     taskCard: {
         backgroundColor: '#D9FAD9',
