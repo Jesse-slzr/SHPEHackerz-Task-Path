@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
     View,
+    Pressable,
     Text,
+    Image,
+    ActivityIndicator,
     FlatList,
     StyleSheet,
-    Pressable,
-    ActivityIndicator,
-    Image
 } from 'react-native';
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../FirebaseConfig';
 import { getDocs, collection } from 'firebase/firestore';

@@ -1,13 +1,15 @@
 import { useLocalSearchParams, router } from 'expo-router';
 import {
     View,
+    Pressable,
     Text,
+    Image,
+    ActivityIndicator,
     FlatList,
     StyleSheet,
-    Pressable,
-    ActivityIndicator,
-    Image
 } from 'react-native';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../../FirebaseConfig';
@@ -60,6 +62,12 @@ const KidScreen = () => {
     return (
         <View style={styles.container}>
             {/* Kid Info Header Section */}
+            <View style={styles.header}>
+                <Pressable onPress={() => router.push({pathname: '/screens/kidsViewScreens', params: { id: params.id, name: params.name }})} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                    <FontAwesomeIcon icon={faArrowLeft} size={24} color="black" />
+                </Pressable>
+            </View>
+
             <View style={styles.header}>
                 <View>
                     <Text style={styles.kidName}>{params.name}</Text>
@@ -131,6 +139,12 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         marginBottom: 16,
     },
+    headerButton: {
+        backgroundColor: '#A8D5BA',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+    },
     kidName: {
         fontSize: 18,
         fontWeight: 'bold',
@@ -151,6 +165,12 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         marginBottom: 16,
     },
+    rewardsButton: {
+        backgroundColor: '#A8D5BA',
+    },
+    tasksButton: {
+        backgroundColor: '#D9FAD9',
+    },
     button: {
         flex: 1,
         paddingVertical: 12,
@@ -158,12 +178,6 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         alignItems: 'center',
         elevation: 2,
-    },
-    rewardsButton: {
-        backgroundColor: '#A8D5BA',
-    },
-    tasksButton: {
-        backgroundColor: '#D9FAD9',
     },
     buttonText: {
         fontSize: 16,

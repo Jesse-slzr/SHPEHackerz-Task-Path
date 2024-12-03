@@ -24,7 +24,7 @@ const Login = () => {
 	const signUp = async () => {
 		setLoading(true);
 		try {
-			await createUserWithEmailAndPassword(auth, email, password);
+			await createUserWithEmailAndPassword(auth(), email, password);
 			alert('Check your emails!');
 		} catch (e: any) {
 			const err = e as FirebaseError;
@@ -38,7 +38,7 @@ const Login = () => {
 	const signIn = async () => {
 		setLoading(true);
 		try {
-			await signInWithEmailAndPassword(auth, email, password);
+			await signInWithEmailAndPassword(auth(), email, password);
 		} catch (e: any) {
 			const err = e as FirebaseError;
 			alert('Sign in failed: ' + err.message);

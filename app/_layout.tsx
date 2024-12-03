@@ -11,7 +11,7 @@ export default function RootLayout() {
 	const segments = useSegments();
 
 	useEffect(() => {
-		const unsubscribe = onAuthStateChanged(FIREBASE_AUTH, (currentUser: User | null) => {
+		const unsubscribe = onAuthStateChanged(FIREBASE_AUTH(), (currentUser: User | null) => {
 			console.log('onAuthStateChanged', currentUser);
 			setUser(currentUser);
 			if (initializing) setInitializing(false);

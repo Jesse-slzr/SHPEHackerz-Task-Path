@@ -15,7 +15,7 @@ const Page = () => {
 
     // Check if the user is logged in
 	useEffect(() => {
-		const unsubscribe = onAuthStateChanged(FIREBASE_AUTH, (currentUser: User | null) => {
+		const unsubscribe = onAuthStateChanged(FIREBASE_AUTH(), (currentUser: User | null) => {
 			setUser(currentUser);
 		});
 
@@ -24,7 +24,7 @@ const Page = () => {
 
     // Handle sign out
     const handleSignOut = () => {
-        FIREBASE_AUTH.signOut().then(() => {
+        FIREBASE_AUTH().signOut().then(() => {
             router.replace('/(auth)/Login');
         }).catch((error) => {
             console.error('Error signing out:', error);
