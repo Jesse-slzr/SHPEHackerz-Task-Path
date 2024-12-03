@@ -9,7 +9,7 @@ import {
     StyleSheet,
 } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faCircleUser } from '@fortawesome/free-solid-svg-icons';
 import { useLocalSearchParams, router } from 'expo-router';
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../../FirebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
@@ -61,47 +61,44 @@ const KidsRewardsView = () => {
 
     return (
         <View style={styles.container}>
-            {/* Header Section */}
+            {/* Kid Info Header Section */}  
             <View style={styles.header}>
-                <Pressable onPress={() => router.push({pathname: '/screens/kidsViewScreens', params: { id: params.id, name: params.name }})} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
-                    <FontAwesomeIcon icon={faArrowLeft} size={24} color="black" />
-                </Pressable>
-            </View>
-            <View style={styles.header}>
-                <View>
-                    <Text style={styles.kidName}>{params.name}</Text>
-                    <Text style={styles.coinText}>💰 10 Coins</Text>
+                <View style={styles.kidHeader}>
+                    <Pressable onPress={() => router.push({pathname: '/screens/kidsViewScreens', params: { id: params.id, name: params.name }})} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                        <FontAwesomeIcon icon={faArrowLeft} size={24} color="black" />
+                    </Pressable>
+                    <View>
+                        <Text style={styles.kidName}>{params.name}</Text>
+                        <Text style={styles.coinText}>💰 10 Coins</Text>
+                    </View>
+                    <FontAwesomeIcon icon={faCircleUser} size={80} color="black" />
                 </View>
-                <Image
-                    source={{ uri: 'https://via.placeholder.com/80' }}
-                    style={styles.avatar}
-                />
-            </View>
-
-            {/* Button Section */}
-            <View style={styles.buttonContainer}>
-                <Pressable
-                style={[styles.button, styles.rewardsButton]}
-                onPress={() =>
-                    router.push({
-                    pathname: '/screens/kidsViewScreens/[id]/KidsRewardsView',
-                    params: { id: params.id, name: params.name },
-                    })
-                }
-                >
-                <Text style={styles.buttonText}>Rewards</Text>
-                </Pressable>
-                <Pressable
-                style={[styles.button, styles.tasksButton]}
-                onPress={() =>
-                    router.push({
-                    pathname: '/screens/kidsViewScreens/[id]',
-                    params: { id: params.id, name: params.name },
-                    })
-                }
-                >
-                <Text style={styles.buttonText}>Tasks</Text>
-                </Pressable>
+                
+                {/* Rewards/Tasks Button Section */}
+                <View style={styles.buttonContainer}>
+                    <Pressable
+                    style={[styles.button, styles.rewardsButton]}
+                    onPress={() =>
+                        router.push({
+                        pathname: '/screens/kidsViewScreens/[id]/KidsRewardsView',
+                        params: { id: params.id, name: params.name },
+                        })
+                    }
+                    >
+                    <Text style={styles.buttonText}>Rewards</Text>
+                    </Pressable>
+                    <Pressable
+                    style={[styles.button, styles.tasksButton]}
+                    onPress={() =>
+                        router.push({
+                        pathname: '/screens/kidsViewScreens/[id]',
+                        params: { id: params.id, name: params.name },
+                        })
+                    }
+                    >
+                    <Text style={styles.buttonText}>Tasks</Text>
+                    </Pressable>
+                </View>
             </View>
             
             {/* Rewards List */}
@@ -126,31 +123,38 @@ const KidsRewardsView = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F5F5',
-        padding: 16,
+        backgroundColor: '#fff',
     },
-    header: {
+    kidHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+    },
+    header: {
         backgroundColor: '#A8D5BA',
         padding: 16,
-        borderRadius: 10,
         marginBottom: 16,
+        flexDirection: 'column'
     },
     headerButton: {
+        position: 'absolute',
+        top: 10,
+        left: 10,
         backgroundColor: '#A8D5BA',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center'
+        padding: 8,
+        borderRadius: 50,
     },
     kidName: {
+        marginTop: 55,
+        left: 10,
         fontSize: 18,
         fontWeight: 'bold',
         color: '#333',
     },
     coinText: {
         fontSize: 16,
+        marginTop: 5,
+        left: 10,
         color: '#666',
     },
     avatar: {
@@ -168,15 +172,24 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: 12,
         marginHorizontal: 8,
+        marginTop: 10,
         borderRadius: 20,
+        borderColor: '#000',
+        borderWidth: 2,
         alignItems: 'center',
         elevation: 2,
     },
     rewardsButton: {
-        backgroundColor: '#D9FAD9',
+        backgroundColor: '#fff',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
     },
     tasksButton: {
         backgroundColor: '#A8D5BA',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
     },
     buttonText: {
         fontSize: 16,
@@ -189,11 +202,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     rewardCard: {
-        backgroundColor: '#D9FAD9',
+        backgroundColor: '#A8D5BA',
         padding: 16,
         marginBottom: 16,
         borderRadius: 10,
         elevation: 2,
+        width: '90%',
+        alignSelf: 'center',
     },
     rewardHeader: {
         flexDirection: 'row',

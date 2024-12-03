@@ -11,6 +11,8 @@ import {
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../FirebaseConfig';
 import { getDocs, collection } from 'firebase/firestore';
 import { useRouter, Link } from 'expo-router';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faCircleUser } from '@fortawesome/free-solid-svg-icons';
 
 interface Kid {
     id: string;
@@ -55,10 +57,7 @@ const KidsSelectionScreen = () => {
                 style={styles.kidLink}
             >
                 <View style={styles.kidCard}>
-                    <Image
-                        source={{ uri: 'https://via.placeholder.com/64' }}
-                        style={styles.kidAvatar}
-                    />
+                    <FontAwesomeIcon icon={faCircleUser} size={80} color="black" />
                     <Text style={styles.kidName}>{item.name}</Text>
                 </View>
             </Link>
@@ -83,7 +82,8 @@ const KidsSelectionScreen = () => {
             >
                 <Text style={styles.exitButtonText}>Exit Kids View</Text>
             </Pressable>
-            
+
+            {/* Kid List Section */}
             <FlatList
                 data={kids}
                 keyExtractor={(item) => item.id}
@@ -103,11 +103,12 @@ const styles = StyleSheet.create({
     },
     exitButton: {
         alignSelf: 'flex-end',
-        backgroundColor: '#FFFFFF',
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 25,
+        backgroundColor: '#fff',
+        padding: 10,
+        borderRadius: 20,
         elevation: 2,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
     },
     exitButtonText: {
         fontSize: 16,
@@ -133,9 +134,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     kidCard: {
-        backgroundColor: '#fff',
+        backgroundColor: '#A3D5BA',
         borderRadius: 10,
-        padding: 10,
+        padding: 30,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
@@ -150,6 +151,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     kidName: {
+        marginTop: 8,
         fontSize: 16,
         fontWeight: '500',
         color: '#333333',

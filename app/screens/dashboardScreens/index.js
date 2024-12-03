@@ -189,13 +189,18 @@ const styles = {
         padding: 10
     },
     kidsViewButton: {
-        padding: 10,
+        alignSelf: 'flex-end',
         backgroundColor: '#fff',
-        borderRadius: 10
+        padding: 10,
+        borderRadius: 20,
+        elevation: 2,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
     },
     kidsViewButtonText: {
+        fontSize: 16,
+        fontWeight: 'bold',
         color: '#000',
-        fontWeight: 'bold'
     },
     title: { 
         fontSize: 30,
