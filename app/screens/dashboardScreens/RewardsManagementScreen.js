@@ -3,8 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TextInput, Button, StyleSheet, Pressable, Modal, KeyboardAvoidingView, TouchableOpacity } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { FontAwesome } from '@expo/vector-icons';
-import { faTasks, faChild, faGift, faHouse, faPlus } from '@fortawesome/free-solid-svg-icons';
-import { Link, useRouter } from 'expo-router';
+import { faTasks, faChild, faGift, faHouse } from '@fortawesome/free-solid-svg-icons';
+import { useRouter } from 'expo-router';
 import { FIREBASE_DB as FIRESTORE_DB} from '../../../FirebaseConfig';
 import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import uuid from 'react-native-uuid';
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff'
     },
     header: {
-        padding: 16,
+        padding: 25,
         backgroundColor: '#A8D5BA',
         flexDirection: 'row',
         justifyContent: 'space-between',
