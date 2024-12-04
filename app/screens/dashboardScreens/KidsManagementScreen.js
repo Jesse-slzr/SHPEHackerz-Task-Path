@@ -1,216 +1,328 @@
-// KidsManagementScreen.js
-import React, { useState } from 'react';
-import { View, Text, FlatList, TextInput, Button, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+// KidScreen.js
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, TextInput, Button, StyleSheet, Pressable, Modal, KeyboardAvoidingView, TouchableOpacity } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faTasks, faChild, faGift, faHouse } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesome } from '@expo/vector-icons';
+import { faTasks, faChild, faGift, faHouse, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { Link, useRouter } from 'expo-router';
+import { FIREBASE_DB as FIRESTORE_DB} from '../../../FirebaseConfig';
+import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import uuid from 'react-native-uuid';
 
-const KidsManagementScreen = ({ navigation }) => {
-    const [kidName, setKidName] = useState('');
-    const [kids, setKids] = useState([]);
+const KidScreen = ({ navigation }) => {
+    const [KidName, setKidName] = useState('');
+    const [KidAge, setKidAge] = useState('');
+    const [Kids, setKids] = useState([]);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [createKidModalVisible, setCreateKidModalVisible] = useState(false);
+    const [selectedKid, setSelectedKid] = useState(null);
     const router = useRouter();
-    const [editingKid, setEditingKid] = useState(null); // New code
-    const [kidAge, setKidAge] = useState(''); // New code
-    const [isEditModalVisible, setEditModalVisible] = useState(false); // New code
-    const [isAddModalVisible, setAddModalVisible] = useState(false); // New code
 
-    const openAddKidModal = () => {
-        setKidName('');
-        setKidAge('');
-        setAddModalVisible(true);
-    };
-
-    const addKid = () => {
-        if (kidName.trim() && kidAge.trim()) { // Modified to include kidAge
-            setKids([...kids, { id: Date.now().toString(), name: kidName, age: kidAge }]); // Modified to include age
+    const addKidToFirestore = async () => {
+        try {
+            const KidId = uuid.v4() // Generate unique ID
+            const docRef = await addDoc(collection(FIRESTORE_DB, 'Kids'), {
+                id: KidId,
+                name: KidName,
+                age: parseFloat(KidAge) || 0,
+                completed: false
+            });
+            console.log("Document written with ID: ", docRef.id);
+            setKids((prevKids) => [
+                ...prevKids,
+                { id: docRef.id, name: KidName, age: parseFloat(KidAge), completed: false }
+            ]);
             setKidName('');
-            setKidAge(''); // Reset kidAge
-            setAddModalVisible(false); // Close Add Kid modal
+            setKidAge('');
+            setCreateKidModalVisible(false);   
+        } catch (error) {
+            console.error("Error adding document: ", error);
         }
     };
 
+    
 
-
-    const updateKid = () => {
-        if (kidName.trim() && kidAge.trim() && editingKid) { // Modified to include kidAge
-            setKids(kids.map(kid => kid.id === editingKid.id ? { ...kid, name: kidName, age: kidAge } : kid));
-            setKidName('');
-            setKidAge(''); // Reset kidAge
-            setEditingKid(null);
-            setEditModalVisible(false); // Close Edit Kid modal
+    const fetchKids = async () => {
+        try {
+            const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Kids'));
+            const fetchedKids = querySnapshot.docs.map((doc) => ({
+                id: doc.id,
+                name: doc.data().name,
+                age: doc.data().age,
+                completed: doc.data().completed
+            }));
+            setKids(fetchedKids);
+        } catch (error) {
+            console.error('Error fetching Kids:', error);
         }
     };
 
-    const cancelEdit = () => { // New function to cancel editing
-        setKidName('');
-        setKidAge('');
-        setEditingKid(null);
-        setEditModalVisible(false);
+    const updateKid = async (KidId, updatedName, updatedAge) => {
+        try {
+            const KidRef = doc(FIRESTORE_DB, 'Kids', KidId);
+            await updateDoc(KidRef, { name: updatedName, age: parseFloat(updatedAge) || 0 });
+            setKids((prevKids) => prevKids.map((Kid) => 
+                Kid.id === KidId ? { ...Kid, name: updatedName, age: parseFloat(updatedAge) || 0 } : Kid
+            ));
+            setModalVisible(false);
+            setSelectedKid(null);
+            setKidName('');
+            setKidAge('');
+        } catch (error) {
+            console.error("Error updating document: ", error);
+        }
     };
 
-    const deleteKid = (id) => {
-        setKids(kids.filter(kid => kid.id !== id));
-    };
-
-    const startEditing = (kid) => {
-        setKidName(kid.name);
-        setKidAge(kid.age); // Set kidAge for editing
-        setEditingKid(kid);
-        setEditModalVisible(true); // New code to open Edit Kid modal
+    const deleteKid = async (KidId) => {
+        try {
+            const KidRef = doc(FIRESTORE_DB, 'Kids', KidId);
+            await deleteDoc(KidRef);
+            setKids((prevKids) => prevKids.filter((Kid) => Kid.id !== KidId));
+            setModalVisible(false);
+        } catch (error) {
+            console.error("Error deleting document: ", error);
+        }
     };
 
     const renderKid = ({ item }) => (
-        <View style={styles.kidItem}>
-            <Text style={styles.kidName}>{item.name} (Age: {item.age})</Text> {/* Modified to display age */}
-            <View style={styles.kidItemButtons}> {/* New View to fix button positions */}
-                <TouchableOpacity onPress={() => startEditing(item)} style={styles.editButton}>
-                    <Text>Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => deleteKid(item.id)} style={styles.deleteButton}>
-                    <Text>Delete</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
+        <Pressable style={styles.KidItem} onPress={() => openKidModal(item)}>
+            <Text>{item.name}</Text>
+        </Pressable>
     );
 
+    const openKidModal = (Kid) => {
+        setSelectedKid(Kid);
+        setModalVisible(true);
+    };
+
+    const handleSave = () => {
+        if (selectedKid) {
+            updateKid(selectedKid.id, selectedKid.name, selectedKid.age);
+        }
+    };
+
+    const handleDelete = () => {
+        if (selectedKid) {
+            deleteKid(selectedKid.id);
+        }
+    };
+
+    const handleKidNameChange = (text) => { // New function to handle KidName change
+        const formattedText = text.replace(/[^a-zA-Z\s]/g, ''); // Remove non-letter characters
+        const capitalizedText = formattedText.replace(/\b\w/g, char => char.toUpperCase()); // Capitalize first letter of each word
+        setKidName(capitalizedText);
+    };
+
+
+    useEffect(() => {
+        fetchKids();
+    }, []);
+
     return (
-        <View style={styles.container}>
+        <KeyboardAvoidingView behavior="padding" style={styles.container}>
+            
             {/* Header with settings and navigation to kids view */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.push('/screens/dashboardScreens')} style={styles.headerButton}>
+                <Pressable onPress={() => router.push('/screens/dashboardScreens')} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
                     <FontAwesomeIcon icon={faHouse} size={24} color="black" />
-                </TouchableOpacity>
-                <Text style={styles.title}>Manage Kids</Text>
+                </Pressable>
             </View>
 
-            {/* Button to open Add Kid modal */}
-            <Button
-                title="Add Kid" // Modified to always show "Add Kid"
-                onPress={openAddKidModal} // New onPress handler
-            />
-
-            {/* Kids List */}
+            <Text style={styles.title}>Manage Kids</Text>
             <FlatList
-                data={kids}
+                data={Kids}
                 keyExtractor={(item) => item.id}
                 renderItem={renderKid}
             />
-
-            {/* Add Kid Modal */}
+            
             <Modal
-                visible={isAddModalVisible}
-                transparent={true}
                 animationType="slide"
-            >
-                <View style={styles.modalContainer}> {/* New Modal for adding a kid */}
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Add Kid</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter kid's name"
-                            value={kidName}
-                            onChangeText={setKidName}
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}>
+                <View style={styles.centeredView}>
+                    <View style={styles.modalView}>
+                        <Text style={{ marginBottom: 5, textAlign: 'center' }}>Kid Name:</Text>
+                        <TextInput 
+                            style={styles.input} 
+                            placeholder="Edit Kid name" 
+                            placeholderTextColor="#333" 
+                            value={selectedKid ? selectedKid.name : ''} 
+                            onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, name: text }))} 
                         />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter kid's age"
-                            value={kidAge}
-                            onChangeText={setKidAge}
-                            keyboardType="numeric" // Numeric keyboard for age
+
+                        <Text>Kid Age:</Text>
+                        <TextInput 
+                            style={styles.input} 
+                            placeholder="Enter kid's age" // Add placeholder
+                            placeholderTextColor="#333" 
+                            keyboardType="numeric" 
+                            value={selectedKid ? String(selectedKid.age) : ''} 
+                            onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, age: text.replace(/[^0-9]/g, '') }))} // Ensure only numeric input
                         />
-                        <Button title="Add" onPress={addKid} />
-                        <Button title="Cancel" onPress={() => setAddModalVisible(false)} />
+
+                        <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
+                            <Text style={styles.textStyle}>Save</Text>
+                        </Pressable>
+                        <Pressable style={[styles.button, styles.buttonDelete]} onPress={handleDelete}>
+                            <Text style={styles.textStyle}>Delete</Text>
+                        </Pressable>
+                        <Pressable style={[styles.button, styles.buttonClose]} onPress={() => setModalVisible(false)}>
+                            <Text style={styles.textStyle}>Close</Text>
+                        </Pressable>
                     </View>
                 </View>
             </Modal>
 
-            {/* Edit Kid Modal */}
+            <Pressable style={styles.plusButtonStyle} onPress={() => setCreateKidModalVisible(true)}>
+                <FontAwesome name="plus" size={12} color="black" />
+            </Pressable>
+
+            {/* Create Kid Modal */}
             <Modal
-                visible={isEditModalVisible}
-                transparent={true}
                 animationType="slide"
+                transparent={true}
+                visible={createKidModalVisible}
+                onRequestClose={() => setCreateKidModalVisible(false)}
             >
-                <View style={styles.modalContainer}> {/* New Modal for editing a kid */}
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Edit Kid</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter kid's name"
-                            value={kidName}
-                            onChangeText={setKidName}
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter kid's age"
-                            value={kidAge}
-                            onChangeText={setKidAge}
-                            keyboardType="numeric"
-                        />
-                        <Button title="Update" onPress={updateKid} />
-                        <Button title="Cancel" onPress={cancelEdit} />
+                <View style={styles.centeredView}>
+                    <View style={styles.modalView}>
+                        <Text style={{ marginVertical: 5, textAlign: 'center', fontWeight: 'bold' }}>Create Kid</Text>
+                        <TextInput style={styles.input} placeholder="Kid Name" placeholderTextColor="#333" value={KidName} onChangeText={setKidName} />
+                        <TextInput style={styles.input} placeholder="Age" placeholderTextColor="#333" keyboardType="numeric" value={KidAge} onChangeText={setKidAge} />
+                        <Pressable style={styles.plusButtonStyle} onPress={addKidToFirestore}>
+                            <FontAwesome name="plus" size={12} color="black" />
+                        </Pressable>
+                        <Pressable style={styles.buttonClose} onPress={() => setCreateKidModalVisible(false)}>
+                            <Text>Close</Text>
+                        </Pressable>
                     </View>
                 </View>
             </Modal>
 
             {/* Bottom navigation with icons */}
             <View style={styles.bottomNavigation}>
-                <Link href="/screens/dashboardScreens/TasksManagementScreen">
+                <Pressable onPress={() => router.push('/screens/dashboardScreens/TasksManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
                     <FontAwesomeIcon icon={faTasks} size={24} color="black" />
-                </Link>
-                <Link href="/screens/dashboardScreens/KidsManagementScreen">
+                </Pressable>
+                <Pressable onPress={() => router.push('/screens/dashboardScreens/KidsManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
                     <FontAwesomeIcon icon={faChild} size={24} color="black" />
-                </Link>
-                <Link href="/screens/dashboardScreens/RewardsManagementScreen">
+                </Pressable>
+                <Pressable onPress={() => router.push('/screens/dashboardScreens/RewardsManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
                     <FontAwesomeIcon icon={faGift} size={24} color="black" />
-                </Link>
+                </Pressable>
             </View>
-        </View>
+        </KeyboardAvoidingView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
+    container: {
+        flex: 1,
+        backgroundColor: '#fff'
+    },
     header: {
         padding: 16,
         backgroundColor: '#A8D5BA',
         flexDirection: 'row',
-        alignItems: 'center',
+        justifyContent: 'space-between',
+        alignItems: 'center'
     },
-    headerButton: { marginRight: 16 },
-    title: { fontSize: 24, fontWeight: 'bold' },
-    input: { borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 10, width: '80%' },
-    kidItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between', // Modified to space between
-        alignItems: 'center',
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 20,
+        alignSelf: 'center',
+        paddingTop: 10
+    },
+    input: {
+        marginTop: 10,
+        borderWidth: 1,
+        width: '50%',
+        alignSelf: 'center',
+        borderColor: '#ccc',
         padding: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
+        marginBottom: 10
     },
-    kidName: { flex: 1 }, // Ensure the name takes up available space
-    kidItemButtons: { flexDirection: 'row' }, // New style for buttons container
-    editButton: { marginRight: 10 }, // Style for edit button
-    deleteButton: {}, // Style for delete button
+    KidItem: {
+        borderRadius: 10,
+        marginVertical: 5,
+        width: '50%',
+        alignSelf: 'center',
+        backgroundColor: '#fff',
+        borderColor: '#000',
+        borderWidth: 1,
+        padding: 10
+    },
+    centeredView: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    modalView: {
+        margin: 20,
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 35,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5 
+    },
+    button: {
+        borderRadius: 10,
+        padding: 10,
+        elevation: 2,
+        marginBottom: 20
+    },
+    buttonSave: {
+        backgroundColor: '#2196F3' 
+    },
+    buttonDelete: {
+        backgroundColor: '#FF3E3E'
+    },
+    buttonClose: {
+        backgroundColor: '#A8D5BA',
+        padding: 10,
+        borderRadius: 10
+    },
+    textStyle: {
+        color: 'white',
+        fontWeight: 'bold',
+        textAlign: 'center'
+    },
     bottomNavigation: {
         flexDirection: 'row',
         justifyContent: 'space-around',
+        marginTop: 20,
         backgroundColor: '#A8D5BA',
-        padding: 16,
+        padding: 16
     },
-    modalContainer: { // New styles for modal background
-        flex: 1,
+    buttonContainer: {
+        marginVertical: 10,
+        borderRadius: 10,
+        backgroundColor: '#A8D5BA',
+        borderColor: '#fff',
+        borderWidth: 3,
+        padding: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '10%',
+        alignSelf: 'center'
+    },
+    plusButtonStyle: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: '#A8D5BA',
+        borderColor: '#fff',
+        borderWidth: 3,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)', // Semi-transparent background
-    },
-    modalContent: { // New styles for modal content
-        width: '80%',
-        backgroundColor: '#fff',
-        padding: 20,
-        borderRadius: 10,
-        alignItems: 'center',
-    },
-    modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 20 },
+        margin: 10
+    }
 });
 
-export default KidsManagementScreen;
+export default KidScreen;
