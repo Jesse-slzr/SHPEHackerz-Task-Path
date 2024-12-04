@@ -133,6 +133,7 @@ const styles = StyleSheet.create({
     header: {
         backgroundColor: '#A8D5BA',
         padding: 16,
+        paddingTop: 48,
         marginBottom: 16,
         flexDirection: 'column'
     },

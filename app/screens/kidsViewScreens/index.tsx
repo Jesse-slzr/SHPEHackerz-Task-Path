@@ -105,6 +105,7 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-end',
         backgroundColor: '#fff',
         padding: 10,
+        marginTop: 48,
         borderRadius: 20,
         elevation: 2,
         shadowOffset: { width: 0, height: 2 },

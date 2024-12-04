@@ -118,13 +118,14 @@ const styles = StyleSheet.create({
     titleImage: {
         width: '100%',
         height: '25%',
+        marginTop: 30,
         overflow: 'hidden',
         justifyContent: 'center',
         alignItems: 'center',
         alignSelf: 'center',
     },
 	container: {
-        marginTop: -300,
+        marginBottom: 320,
 		marginHorizontal: 20,
 		flex: 1,
 		justifyContent: 'center'

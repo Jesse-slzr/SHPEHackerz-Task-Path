@@ -1,121 +1,119 @@
-// KidScreen.js
+// TaskScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TextInput, Button, StyleSheet, Pressable, Modal, KeyboardAvoidingView, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, TextInput, StyleSheet, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { FontAwesome } from '@expo/vector-icons';
 import { faTasks, faChild, faGift, faHouse, faPlus } from '@fortawesome/free-solid-svg-icons';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { FIREBASE_DB as FIRESTORE_DB} from '../../../FirebaseConfig';
 import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import uuid from 'react-native-uuid';
 
-const KidScreen = ({ navigation }) => {
-    const [KidName, setKidName] = useState('');
-    const [KidAge, setKidAge] = useState('');
-    const [Kids, setKids] = useState([]);
+interface Task {
+    id: string;
+    name: string;
+    description: string;
+    cost: number;
+    completed: boolean;
+}
+
+const TaskScreen = () => {
+    const [taskName, setTaskName] = useState('');
+    const [taskDescription, setTaskDescription] = useState('');
+    const [taskCost, setTaskCost] = useState('');
+    const [tasks, setTasks] = useState<Task[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
-    const [createKidModalVisible, setCreateKidModalVisible] = useState(false);
-    const [selectedKid, setSelectedKid] = useState(null);
+    const [createTaskModalVisible, setCreateTaskModalVisible] = useState(false);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const router = useRouter();
 
-    const addKidToFirestore = async () => {
+    const addTaskToFirestore = async () => {
         try {
-            const KidId = uuid.v4() // Generate unique ID
-            const docRef = await addDoc(collection(FIRESTORE_DB, 'Kids'), {
-                id: KidId,
-                name: KidName,
-                age: parseFloat(KidAge) || 0,
+            const taskId = uuid.v4() // Generate unique ID
+            const newTask = {
+                id: taskId,
+                name: taskName,
+                description: taskDescription,
+                cost: parseFloat(taskCost),
                 completed: false
-            });
-            console.log("Document written with ID: ", docRef.id);
-            setKids((prevKids) => [
-                ...prevKids,
-                { id: docRef.id, name: KidName, age: parseFloat(KidAge), completed: false }
-            ]);
-            setKidName('');
-            setKidAge('');
-            setCreateKidModalVisible(false);   
+            };
+            const docRef = await addDoc(collection(FIRESTORE_DB, 'Tasks'), newTask);
+            setTasks((prevTasks) => [...prevTasks, { ...newTask, id: docRef.id }]);
+            setTaskName('');
+            setTaskDescription('');
+            setTaskCost('');
+            setCreateTaskModalVisible(false);   
         } catch (error) {
             console.error("Error adding document: ", error);
         }
     };
 
-    
-
-    const fetchKids = async () => {
+    const fetchTasks = async () => {
         try {
-            const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Kids'));
-            const fetchedKids = querySnapshot.docs.map((doc) => ({
+            const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Tasks'));
+            const fetchedTasks = querySnapshot.docs.map((doc) => ({
                 id: doc.id,
-                name: doc.data().name,
-                age: doc.data().age,
-                completed: doc.data().completed
-            }));
-            setKids(fetchedKids);
+                ...doc.data()
+            } as Task));
+            setTasks(fetchedTasks);
         } catch (error) {
-            console.error('Error fetching Kids:', error);
+            console.error('Error fetching tasks:', error);
         }
     };
 
-    const updateKid = async (KidId, updatedName, updatedAge) => {
+    const updateTask = async (taskId: string, updatedName: string, updatedDescription: string, updatedCost: string) => {
         try {
-            const KidRef = doc(FIRESTORE_DB, 'Kids', KidId);
-            await updateDoc(KidRef, { name: updatedName, age: parseFloat(updatedAge) || 0 });
-            setKids((prevKids) => prevKids.map((Kid) => 
-                Kid.id === KidId ? { ...Kid, name: updatedName, age: parseFloat(updatedAge) || 0 } : Kid
+            const taskRef = doc(FIRESTORE_DB, 'Tasks', taskId);
+            await updateDoc(taskRef, { name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) });
+            setTasks((prevTasks) => prevTasks.map((task) => 
+                task.id === taskId ? { ...task, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) } : task
             ));
             setModalVisible(false);
-            setSelectedKid(null);
-            setKidName('');
-            setKidAge('');
+            setSelectedTask(null);
+            setTaskName('');
+            setTaskDescription('');
+            setTaskCost('');
         } catch (error) {
             console.error("Error updating document: ", error);
         }
     };
 
-    const deleteKid = async (KidId) => {
+    const deleteTask = async (taskId: string) => {
         try {
-            const KidRef = doc(FIRESTORE_DB, 'Kids', KidId);
-            await deleteDoc(KidRef);
-            setKids((prevKids) => prevKids.filter((Kid) => Kid.id !== KidId));
+            const taskRef = doc(FIRESTORE_DB, 'Tasks', taskId);
+            await deleteDoc(taskRef);
+            setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
             setModalVisible(false);
         } catch (error) {
             console.error("Error deleting document: ", error);
         }
     };
 
-    const renderKid = ({ item }) => (
-        <Pressable style={styles.KidItem} onPress={() => openKidModal(item)}>
+    const renderTask = ({ item }: { item: Task}) => (
+        <Pressable style={styles.taskItem} onPress={() => openTaskModal(item)}>
             <Text>{item.name}</Text>
         </Pressable>
     );
 
-    const openKidModal = (Kid) => {
-        setSelectedKid(Kid);
+    const openTaskModal = (task: Task) => {
+        setSelectedTask(task);
         setModalVisible(true);
     };
 
     const handleSave = () => {
-        if (selectedKid) {
-            updateKid(selectedKid.id, selectedKid.name, selectedKid.age);
+        if (selectedTask) {
+            updateTask(selectedTask.id, selectedTask.name, selectedTask.description, selectedTask.cost.toString());
         }
     };
 
     const handleDelete = () => {
-        if (selectedKid) {
-            deleteKid(selectedKid.id);
+        if (selectedTask) {
+            deleteTask(selectedTask.id);
         }
     };
 
-    const handleKidNameChange = (text) => { // New function to handle KidName change
-        const formattedText = text.replace(/[^a-zA-Z\s]/g, ''); // Remove non-letter characters
-        const capitalizedText = formattedText.replace(/\b\w/g, char => char.toUpperCase()); // Capitalize first letter of each word
-        setKidName(capitalizedText);
-    };
-
-
     useEffect(() => {
-        fetchKids();
+        fetchTasks();
     }, []);
 
     return (
@@ -123,16 +121,16 @@ const KidScreen = ({ navigation }) => {
             
             {/* Header with settings and navigation to kids view */}
             <View style={styles.header}>
-                <Pressable onPress={() => router.push('/screens/dashboardScreens')} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                <Pressable onPress={() => router.push('../dashboardScreens')} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
                     <FontAwesomeIcon icon={faHouse} size={24} color="black" />
                 </Pressable>
             </View>
 
-            <Text style={styles.title}>Manage Kids</Text>
+            <Text style={styles.title}>Manage Tasks</Text>
             <FlatList
-                data={Kids}
+                data={tasks}
                 keyExtractor={(item) => item.id}
-                renderItem={renderKid}
+                renderItem={renderTask}
             />
             
             <Modal
@@ -142,25 +140,21 @@ const KidScreen = ({ navigation }) => {
                 onRequestClose={() => setModalVisible(false)}>
                 <View style={styles.centeredView}>
                     <View style={styles.modalView}>
-                        <Text style={{ marginBottom: 5, textAlign: 'center' }}>Kid Name:</Text>
-                        <TextInput 
-                            style={styles.input} 
-                            placeholder="Edit Kid name" 
-                            placeholderTextColor="#333" 
-                            value={selectedKid ? selectedKid.name : ''} 
-                            onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, name: text }))} 
-                        />
+                        <Text style={{ marginBottom: 5, textAlign: 'center' }}>Task Name:</Text>
+                        <TextInput style={styles.input} placeholder="Edit task name" placeholderTextColor="#333" value={selectedTask ? selectedTask.name : ''} onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, name: text }) as Task | null)}/>
+                        <Text>Task Description:</Text>
+                        <TextInput style={styles.input} value={selectedTask ? selectedTask.description : ''} onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, description: text }) as Task | null)} />
 
-                        <Text>Kid Age:</Text>
+                        <Text>Task Cost:</Text>
                         <TextInput 
                             style={styles.input} 
-                            placeholder="Enter kid's age" // Add placeholder
+                            placeholder="Enter task cost" // Add placeholder
                             placeholderTextColor="#333" 
                             keyboardType="numeric" 
-                            value={selectedKid ? String(selectedKid.age) : ''} 
-                            onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, age: text.replace(/[^0-9]/g, '') }))} // Ensure only numeric input
+                            value={selectedTask ? String(selectedTask.cost) : ''} 
+                            onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, cost: parseInt(text.replace(/[^0-9]/g, ''), 10) }) as Task | null)}
                         />
-
+                        
                         <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
                             <Text style={styles.textStyle}>Save</Text>
                         </Pressable>
@@ -174,26 +168,27 @@ const KidScreen = ({ navigation }) => {
                 </View>
             </Modal>
 
-            <Pressable style={styles.plusButtonStyle} onPress={() => setCreateKidModalVisible(true)}>
+            <Pressable style={styles.plusButtonStyle} onPress={() => setCreateTaskModalVisible(true)}>
                 <FontAwesome name="plus" size={12} color="black" />
             </Pressable>
 
-            {/* Create Kid Modal */}
+            {/* Create Task Modal */}
             <Modal
                 animationType="slide"
                 transparent={true}
-                visible={createKidModalVisible}
-                onRequestClose={() => setCreateKidModalVisible(false)}
+                visible={createTaskModalVisible}
+                onRequestClose={() => setCreateTaskModalVisible(false)}
             >
                 <View style={styles.centeredView}>
                     <View style={styles.modalView}>
-                        <Text style={{ marginVertical: 5, textAlign: 'center', fontWeight: 'bold' }}>Create Kid</Text>
-                        <TextInput style={styles.input} placeholder="Kid Name" placeholderTextColor="#333" value={KidName} onChangeText={setKidName} />
-                        <TextInput style={styles.input} placeholder="Age" placeholderTextColor="#333" keyboardType="numeric" value={KidAge} onChangeText={setKidAge} />
-                        <Pressable style={styles.plusButtonStyle} onPress={addKidToFirestore}>
+                        <Text style={{ marginVertical: 5, textAlign: 'center', fontWeight: 'bold' }}>Create Task</Text>
+                        <TextInput style={styles.input} placeholder="Task Name" placeholderTextColor="#333" value={taskName} onChangeText={setTaskName} />
+                        <TextInput style={styles.input} placeholder="Description" placeholderTextColor="#333" value={taskDescription} onChangeText={setTaskDescription} />
+                        <TextInput style={styles.input} placeholder="Cost" placeholderTextColor="#333" keyboardType="numeric" value={taskCost} onChangeText={setTaskCost} />
+                        <Pressable style={styles.plusButtonStyle} onPress={addTaskToFirestore}>
                             <FontAwesome name="plus" size={12} color="black" />
                         </Pressable>
-                        <Pressable style={styles.buttonClose} onPress={() => setCreateKidModalVisible(false)}>
+                        <Pressable style={styles.buttonClose} onPress={() => setCreateTaskModalVisible(false)}>
                             <Text>Close</Text>
                         </Pressable>
                     </View>
@@ -222,11 +217,15 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff'
     },
     header: {
-        padding: 25,
+        padding: 16,
+        paddingTop: 48,
         backgroundColor: '#A8D5BA',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center'
+    },
+    headerButton: {
+        padding: 10
     },
     title: {
         fontSize: 24,
@@ -235,16 +234,7 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         paddingTop: 10
     },
-    input: {
-        marginTop: 10,
-        borderWidth: 1,
-        width: '50%',
-        alignSelf: 'center',
-        borderColor: '#ccc',
-        padding: 10,
-        marginBottom: 10
-    },
-    KidItem: {
+    taskItem: {
         borderRadius: 10,
         marginVertical: 5,
         width: '50%',
@@ -271,6 +261,15 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 5 
     },
+    input: {
+        marginTop: 10,
+        borderWidth: 1,
+        width: '50%',
+        alignSelf: 'center',
+        borderColor: '#ccc',
+        padding: 10,
+        marginBottom: 10
+    },
     button: {
         borderRadius: 10,
         padding: 10,
@@ -293,25 +292,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center'
     },
-    bottomNavigation: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginTop: 20,
-        backgroundColor: '#A8D5BA',
-        padding: 16
-    },
-    buttonContainer: {
-        marginVertical: 10,
-        borderRadius: 10,
-        backgroundColor: '#A8D5BA',
-        borderColor: '#fff',
-        borderWidth: 3,
-        padding: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '10%',
-        alignSelf: 'center'
-    },
     plusButtonStyle: {
         width: 50,
         height: 50,
@@ -322,7 +302,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         margin: 10
+    },
+    bottomNavigation: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginTop: 20,
+        backgroundColor: '#A8D5BA',
+        padding: 16,
+        paddingBottom: 48,
     }
 });
 
-export default KidScreen;
+export default TaskScreen;

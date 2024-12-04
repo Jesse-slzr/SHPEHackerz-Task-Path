@@ -52,6 +52,7 @@ export default function RootLayout() {
         <Stack>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
 			<Stack.Screen name="screens/dashboardScreens" options={{ headerShown: false }} />
+            <Stack.Screen name="screens/kidsViewScreens" options={{ headerShown: false }} />
         </Stack>
         );
 }
