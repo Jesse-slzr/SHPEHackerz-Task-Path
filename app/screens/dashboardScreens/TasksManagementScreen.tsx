@@ -1,39 +1,52 @@
-// TaskScreen.js
+// TaskScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TextInput, Button, StyleSheet, Pressable, Modal, KeyboardAvoidingView, TouchableOpacity } from 'react-native';
+import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { FontAwesome } from '@expo/vector-icons';
 import { faTasks, faChild, faGift, faHouse, faPlus } from '@fortawesome/free-solid-svg-icons';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { FIREBASE_DB as FIRESTORE_DB} from '../../../FirebaseConfig';
 import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import uuid from 'react-native-uuid';
 
-const TaskScreen = ({ navigation }) => {
+interface Task {
+    docId: string;
+    taskId: string;
+    name: string;
+    description: string;
+    cost: number;
+    completed: boolean;
+    childId: string;
+}
+
+const TaskScreen = () => {
     const [taskName, setTaskName] = useState('');
     const [taskDescription, setTaskDescription] = useState('');
     const [taskCost, setTaskCost] = useState('');
-    const [tasks, setTasks] = useState([]);
+    const [tasks, setTasks] = useState<Task[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [createTaskModalVisible, setCreateTaskModalVisible] = useState(false);
-    const [selectedTask, setSelectedTask] = useState(null);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const router = useRouter();
+    const [loading, setLoading] = useState<boolean>(true);
+
+    useEffect(() => {
+        fetchTasks();
+    }, []);
 
     const addTaskToFirestore = async () => {
         try {
             const taskId = uuid.v4() // Generate unique ID
-            const docRef = await addDoc(collection(FIRESTORE_DB, 'Tasks'), {
-                id: taskId,
+            const newTask = {
+                taskId: taskId,
                 name: taskName,
                 description: taskDescription,
                 cost: parseFloat(taskCost),
-                completed: false
-            });
-            console.log("Document written with ID: ", docRef.id);
-            setTasks((prevTasks) => [
-                ...prevTasks,
-                { id: docRef.id, name: taskName, description: taskDescription, cost: parseFloat(taskCost), completed: false }
-            ]);
+                completed: false,
+                childId: ""
+            };
+            const docRef = await addDoc(collection(FIRESTORE_DB, 'Tasks'), newTask);
+            setTasks((prevTasks) => [...prevTasks, { ...newTask, docId: docRef.id }]);
             setTaskName('');
             setTaskDescription('');
             setTaskCost('');
@@ -46,25 +59,24 @@ const TaskScreen = ({ navigation }) => {
     const fetchTasks = async () => {
         try {
             const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Tasks'));
-            const fetchedTasks = querySnapshot.docs.map((doc) => ({
-                id: doc.id,
-                name: doc.data().name,
-                description: doc.data().description,
-                cost: doc.data().cost,
-                completed: doc.data().completed
-            }));
+            const fetchedTasks: Task[] = querySnapshot.docs.map((doc) => ({
+                taskId: doc.data().taskId,
+                ...doc.data(),
+                docId: doc.id
+            } as Task));
             setTasks(fetchedTasks);
+            setLoading(false);
         } catch (error) {
             console.error('Error fetching tasks:', error);
         }
     };
 
-    const updateTask = async (taskId, updatedName, updatedDescription, updatedCost) => {
+    const updateTask = async (task: Task,taskId: string, updatedName: string, updatedDescription: string, updatedCost: string) => {
         try {
-            const taskRef = doc(FIRESTORE_DB, 'Tasks', taskId);
+            const taskRef = doc(FIRESTORE_DB, 'Tasks', task.docId);
             await updateDoc(taskRef, { name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) });
             setTasks((prevTasks) => prevTasks.map((task) => 
-                task.id === taskId ? { ...task, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) } : task
+                task.taskId === taskId ? { ...task, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) } : task
             ));
             setModalVisible(false);
             setSelectedTask(null);
@@ -76,50 +88,56 @@ const TaskScreen = ({ navigation }) => {
         }
     };
 
-    const deleteTask = async (taskId) => {
+    const deleteTask = async (task: Task) => {
         try {
-            const taskRef = doc(FIRESTORE_DB, 'Tasks', taskId);
+            const taskRef = doc(FIRESTORE_DB, 'Tasks', task.docId);
             await deleteDoc(taskRef);
-            setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+            setTasks((prevTasks) => prevTasks.filter((prevTask) => prevTask.docId !== task.docId));
             setModalVisible(false);
+            setSelectedTask(null);
         } catch (error) {
             console.error("Error deleting document: ", error);
         }
     };
 
-    const renderTask = ({ item }) => (
+    const renderTask = ({ item }: { item: Task}) => (
         <Pressable style={styles.taskItem} onPress={() => openTaskModal(item)}>
             <Text>{item.name}</Text>
         </Pressable>
     );
 
-    const openTaskModal = (task) => {
+    const openTaskModal = (task: Task) => {
         setSelectedTask(task);
         setModalVisible(true);
     };
 
     const handleSave = () => {
         if (selectedTask) {
-            updateTask(selectedTask.id, selectedTask.name, selectedTask.description, selectedTask.cost);
+            updateTask(selectedTask,selectedTask.taskId, selectedTask.name, selectedTask.description, selectedTask.cost.toString());
         }
     };
 
     const handleDelete = () => {
         if (selectedTask) {
-            deleteTask(selectedTask.id);
+            deleteTask(selectedTask);
         }
     };
 
-    useEffect(() => {
-        fetchTasks();
-    }, []);
+    if (loading) {
+        return (
+        <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#0000ff" />
+            <Text>Loading Tasks...</Text>
+        </View>
+        );
+    }
 
     return (
         <KeyboardAvoidingView behavior="padding" style={styles.container}>
             
             {/* Header with settings and navigation to kids view */}
             <View style={styles.header}>
-                <Pressable onPress={() => router.push('/screens/dashboardScreens')} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                <Pressable onPress={() => router.push('../dashboardScreens')} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
                     <FontAwesomeIcon icon={faHouse} size={24} color="black" />
                 </Pressable>
             </View>
@@ -127,7 +145,7 @@ const TaskScreen = ({ navigation }) => {
             <Text style={styles.title}>Manage Tasks</Text>
             <FlatList
                 data={tasks}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item) => item.taskId || item.docId}
                 renderItem={renderTask}
             />
             
@@ -139,9 +157,9 @@ const TaskScreen = ({ navigation }) => {
                 <View style={styles.centeredView}>
                     <View style={styles.modalView}>
                         <Text style={{ marginBottom: 5, textAlign: 'center' }}>Task Name:</Text>
-                        <TextInput style={styles.input} placeholder="Edit task name" placeholderTextColor="#333" value={selectedTask ? selectedTask.name : ''} onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, name: text }))}/>
+                        <TextInput style={styles.input} placeholder="Edit task name" placeholderTextColor="#333" value={selectedTask ? selectedTask.name : ''} onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, name: text }) as Task | null)}/>
                         <Text>Task Description:</Text>
-                        <TextInput style={styles.input} value={selectedTask ? selectedTask.description : ''} onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, description: text }))} />
+                        <TextInput style={styles.input} value={selectedTask ? selectedTask.description : ''} onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, description: text }) as Task | null)} />
 
                         <Text>Task Cost:</Text>
                         <TextInput 
@@ -150,7 +168,7 @@ const TaskScreen = ({ navigation }) => {
                             placeholderTextColor="#333" 
                             keyboardType="numeric" 
                             value={selectedTask ? String(selectedTask.cost) : ''} 
-                            onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, cost: text.replace(/[^0-9]/g, '') }))} // Ensure only numeric input
+                            onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, cost: parseInt(text.replace(/[^0-9]/g, ''), 10) }) as Task | null)}
                         />
                         
                         <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
@@ -215,11 +233,15 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff'
     },
     header: {
-        padding: 25,
+        padding: 16,
+        paddingTop: 48,
         backgroundColor: '#A8D5BA',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center'
+    },
+    headerButton: {
+        padding: 10
     },
     title: {
         fontSize: 24,
@@ -228,14 +250,10 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         paddingTop: 10
     },
-    input: {
-        marginTop: 10,
-        borderWidth: 1,
-        width: '50%',
-        alignSelf: 'center',
-        borderColor: '#ccc',
-        padding: 10,
-        marginBottom: 10
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     taskItem: {
         borderRadius: 10,
@@ -264,6 +282,15 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 5 
     },
+    input: {
+        marginTop: 10,
+        borderWidth: 1,
+        width: '50%',
+        alignSelf: 'center',
+        borderColor: '#ccc',
+        padding: 10,
+        marginBottom: 10
+    },
     button: {
         borderRadius: 10,
         padding: 10,
@@ -286,25 +313,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center'
     },
-    bottomNavigation: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginTop: 20,
-        backgroundColor: '#A8D5BA',
-        padding: 16
-    },
-    buttonContainer: {
-        marginVertical: 10,
-        borderRadius: 10,
-        backgroundColor: '#A8D5BA',
-        borderColor: '#fff',
-        borderWidth: 3,
-        padding: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '10%',
-        alignSelf: 'center'
-    },
     plusButtonStyle: {
         width: 50,
         height: 50,
@@ -315,6 +323,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         margin: 10
+    },
+    bottomNavigation: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginTop: 20,
+        backgroundColor: '#A8D5BA',
+        padding: 16,
+        paddingBottom: 48,
     }
 });
 

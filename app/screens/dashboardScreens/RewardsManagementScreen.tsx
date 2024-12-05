@@ -1,6 +1,6 @@
-// RewardScreen.js
+// RewardScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TextInput, Button, StyleSheet, Pressable, Modal, KeyboardAvoidingView, TouchableOpacity } from 'react-native';
+import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { FontAwesome } from '@expo/vector-icons';
 import { faTasks, faChild, faGift, faHouse } from '@fortawesome/free-solid-svg-icons';
@@ -9,31 +9,44 @@ import { FIREBASE_DB as FIRESTORE_DB} from '../../../FirebaseConfig';
 import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import uuid from 'react-native-uuid';
 
-const RewardScreen = ({ navigation }) => {
-    const [RewardName, setRewardName] = useState('');
-    const [RewardDescription, setRewardDescription] = useState('');
-    const [RewardCost, setRewardCost] = useState('');
-    const [Rewards, setRewards] = useState([]);
+interface Reward {
+    docId: string;
+    rewardId: string;
+    name: string;
+    description: string;
+    cost: number;
+    claimed: boolean;
+    childId: string;
+}
+
+const RewardScreen = () => {
+    const [rewardName, setRewardName] = useState('');
+    const [rewardDescription, setRewardDescription] = useState('');
+    const [rewardCost, setRewardCost] = useState('');
+    const [rewards, setRewards] = useState<Reward[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [createRewardModalVisible, setCreateRewardModalVisible] = useState(false);
-    const [selectedReward, setSelectedReward] = useState(null);
+    const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
     const router = useRouter();
+    const [loading, setLoading] = useState<boolean>(true);
+    
+    useEffect(() => {
+        fetchRewards();
+    }, []);
 
     const addRewardToFirestore = async () => {
         try {
-            const RewardId = uuid.v4() // Generate unique ID
-            const docRef = await addDoc(collection(FIRESTORE_DB, 'Rewards'), {
-                id: RewardId,
-                name: RewardName,
-                description: RewardDescription,
-                cost: parseFloat(RewardCost),
-                completed: false
-            });
-            console.log("Document written with ID: ", docRef.id);
-            setRewards((prevRewards) => [
-                ...prevRewards,
-                { id: docRef.id, name: RewardName, description: RewardDescription, cost: parseFloat(RewardCost), completed: false }
-            ]);
+            const rewardId = uuid.v4() // Generate unique ID
+            const newReward = {
+                rewardId: rewardId,
+                name: rewardName,
+                description: rewardDescription,
+                cost: parseFloat(rewardCost),
+                claimed: false,
+                childId: ""
+            };
+            const docRef = await addDoc(collection(FIRESTORE_DB, 'Rewards'), newReward);
+            setRewards((prevRewards) => [...prevRewards, { ...newReward, docId: docRef.id }]);
             setRewardName('');
             setRewardDescription('');
             setRewardCost('');
@@ -46,25 +59,24 @@ const RewardScreen = ({ navigation }) => {
     const fetchRewards = async () => {
         try {
             const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Rewards'));
-            const fetchedRewards = querySnapshot.docs.map((doc) => ({
-                id: doc.id,
-                name: doc.data().name,
-                description: doc.data().description,
-                cost: doc.data().cost,
-                completed: doc.data().completed
-            }));
+            const fetchedRewards: Reward[] = querySnapshot.docs.map((doc) => ({
+                rewardId: doc.data().rewardId,
+                ...doc.data(),
+                docId: doc.id
+            } as Reward));
             setRewards(fetchedRewards);
+            setLoading(false);
         } catch (error) {
             console.error('Error fetching Rewards:', error);
         }
     };
 
-    const updateReward = async (RewardId, updatedName, updatedDescription, updatedCost) => {
+    const updateReward = async (reward: Reward,rewardId: string, updatedName: string, updatedDescription: string, updatedCost: string) => {
         try {
-            const RewardRef = doc(FIRESTORE_DB, 'Rewards', RewardId);
-            await updateDoc(RewardRef, { name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) });
-            setRewards((prevRewards) => prevRewards.map((Reward) => 
-                Reward.id === RewardId ? { ...Reward, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) } : Reward
+            const rewardRef = doc(FIRESTORE_DB, 'Rewards', reward.docId);
+            await updateDoc(rewardRef, { name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) });
+            setRewards((prevRewards) => prevRewards.map((reward) => 
+                reward.rewardId === rewardId ? { ...reward, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) } : reward
             ));
             setModalVisible(false);
             setSelectedReward(null);
@@ -76,58 +88,64 @@ const RewardScreen = ({ navigation }) => {
         }
     };
 
-    const deleteReward = async (RewardId) => {
+    const deleteReward = async (reward: Reward) => {
         try {
-            const RewardRef = doc(FIRESTORE_DB, 'Rewards', RewardId);
-            await deleteDoc(RewardRef);
-            setRewards((prevRewards) => prevRewards.filter((Reward) => Reward.id !== RewardId));
+            const rewardRef = doc(FIRESTORE_DB, 'Rewards', reward.docId);
+            await deleteDoc(rewardRef);
+            setRewards((prevRewards) => prevRewards.filter((prevReward) => prevReward.docId !== reward.docId));
             setModalVisible(false);
+            setSelectedReward(null);
         } catch (error) {
             console.error("Error deleting document: ", error);
         }
     };
 
-    const renderReward = ({ item }) => (
-        <Pressable style={styles.RewardItem} onPress={() => openRewardModal(item)}>
+    const renderReward = ({ item }: { item: Reward}) => (
+        <Pressable style={styles.rewardItem} onPress={() => openRewardModal(item)}>
             <Text>{item.name}</Text>
         </Pressable>
     );
 
-    const openRewardModal = (Reward) => {
-        setSelectedReward(Reward);
+    const openRewardModal = (reward: Reward) => {
+        setSelectedReward(reward);
         setModalVisible(true);
     };
 
     const handleSave = () => {
         if (selectedReward) {
-            updateReward(selectedReward.id, selectedReward.name, selectedReward.description, selectedReward.cost);
+            updateReward(selectedReward, selectedReward.rewardId, selectedReward.name, selectedReward.description, selectedReward.cost.toString());
         }
     };
 
     const handleDelete = () => {
         if (selectedReward) {
-            deleteReward(selectedReward.id);
+            deleteReward(selectedReward);
         }
     };
 
-    useEffect(() => {
-        fetchRewards();
-    }, []);
+    if (loading) {
+        return (
+        <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#0000ff" />
+            <Text>Loading Tasks...</Text>
+        </View>
+        );
+    }
 
     return (
         <KeyboardAvoidingView behavior="padding" style={styles.container}>
             
             {/* Header with settings and navigation to kids view */}
             <View style={styles.header}>
-                <Pressable onPress={() => router.push('/screens/dashboardScreens')} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                <Pressable onPress={() => router.push('../dashboardScreens')} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
                     <FontAwesomeIcon icon={faHouse} size={24} color="black" />
                 </Pressable>
             </View>
 
             <Text style={styles.title}>Manage Rewards</Text>
             <FlatList
-                data={Rewards}
-                keyExtractor={(item) => item.id}
+                data={rewards}
+                keyExtractor={(item) => item.rewardId || item.docId}
                 renderItem={renderReward}
             />
             
@@ -139,12 +157,12 @@ const RewardScreen = ({ navigation }) => {
                 <View style={styles.centeredView}>
                     <View style={styles.modalView}>
                         <Text style={{ marginBottom: 5, textAlign: 'center' }}>Reward Name:</Text>
-                        <TextInput style={styles.input} placeholder="Edit Reward name" placeholderTextColor="#333" value={selectedReward ? selectedReward.name : ''} onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, name: text }))}/>
+                        <TextInput style={styles.input} placeholder="Edit Reward name" placeholderTextColor="#333" value={selectedReward ? selectedReward.name : ''} onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, name: text }) as Reward | null)}/>
                         <Text>Reward Description:</Text>
-                        <TextInput style={styles.input} value={selectedReward ? selectedReward.description : ''} onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, description: text }))} />
+                        <TextInput style={styles.input} value={selectedReward ? selectedReward.description : ''} onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, description: text }) as Reward | null)} />
 
                         <Text>Reward Cost:</Text>
-                        <TextInput style={styles.input} keyboardType="numeric" value={selectedReward ? String(selectedReward.cost) : ''} onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, cost: parseFloat(text) }))} />
+                        <TextInput style={styles.input} keyboardType="numeric" value={selectedReward ? String(selectedReward.cost) : ''} onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, cost: parseFloat(text) }) as Reward | null)} />
 
                         <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
                             <Text style={styles.textStyle}>Save</Text>
@@ -173,9 +191,9 @@ const RewardScreen = ({ navigation }) => {
                 <View style={styles.centeredView}>
                     <View style={styles.modalView}>
                         <Text style={{ marginVertical: 5, textAlign: 'center', fontWeight: 'bold' }}>Create Reward</Text>
-                        <TextInput style={styles.input} placeholder="Reward Name" placeholderTextColor="#333" value={RewardName} onChangeText={setRewardName} />
-                        <TextInput style={styles.input} placeholder="Description" placeholderTextColor="#333" value={RewardDescription} onChangeText={setRewardDescription} />
-                        <TextInput style={styles.input} placeholder="Cost" placeholderTextColor="#333" keyboardType="numeric" value={RewardCost} onChangeText={setRewardCost} />
+                        <TextInput style={styles.input} placeholder="Reward Name" placeholderTextColor="#333" value={rewardName} onChangeText={setRewardName} />
+                        <TextInput style={styles.input} placeholder="Description" placeholderTextColor="#333" value={rewardDescription} onChangeText={setRewardDescription} />
+                        <TextInput style={styles.input} placeholder="Cost" placeholderTextColor="#333" keyboardType="numeric" value={rewardCost} onChangeText={setRewardCost} />
                         <Pressable style={styles.plusButtonStyle} onPress={addRewardToFirestore}>
                             <FontAwesome name="plus" size={12} color="black" />
                         </Pressable>
@@ -208,11 +226,15 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff'
     },
     header: {
-        padding: 25,
+        padding: 16,
+        paddingTop: 48,
         backgroundColor: '#A8D5BA',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center'
+    },
+    headerButton: {
+        padding: 10
     },
     title: {
         fontSize: 24,
@@ -221,16 +243,12 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         paddingTop: 10
     },
-    input: {
-        marginTop: 10,
-        borderWidth: 1,
-        width: '50%',
-        alignSelf: 'center',
-        borderColor: '#ccc',
-        padding: 10,
-        marginBottom: 10
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    RewardItem: {
+    rewardItem: {
         borderRadius: 10,
         marginVertical: 5,
         width: '50%',
@@ -257,6 +275,15 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 5 
     },
+    input: {
+        marginTop: 10,
+        borderWidth: 1,
+        width: '50%',
+        alignSelf: 'center',
+        borderColor: '#ccc',
+        padding: 10,
+        marginBottom: 10
+    },
     button: {
         borderRadius: 10,
         padding: 10,
@@ -279,25 +306,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center'
     },
-    bottomNavigation: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginTop: 20,
-        backgroundColor: '#A8D5BA',
-        padding: 16
-    },
-    buttonContainer: {
-        marginVertical: 10,
-        borderRadius: 10,
-        backgroundColor: '#A8D5BA',
-        borderColor: '#fff',
-        borderWidth: 3,
-        padding: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '10%',
-        alignSelf: 'center'
-    },
     plusButtonStyle: {
         width: 50,
         height: 50,
@@ -308,6 +316,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         margin: 10
+    },
+    bottomNavigation: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginTop: 20,
+        backgroundColor: '#A8D5BA',
+        padding: 16,
+        paddingBottom: 48,
     }
 });
 

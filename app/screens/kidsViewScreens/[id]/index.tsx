@@ -11,7 +11,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faArrowLeft, faCircleUser } from '@fortawesome/free-solid-svg-icons';
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, addDoc, updateDoc } from 'firebase/firestore';
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../../FirebaseConfig';
 
 interface Task {
@@ -73,7 +73,7 @@ const KidScreen = () => {
                     </View>
                     <FontAwesomeIcon icon={faCircleUser} size={80} color="black" />
                 </View>
-                
+
                 {/* Rewards/Tasks Button Section */}
                 <View style={styles.buttonContainer}>
                     <Pressable
@@ -133,6 +133,7 @@ const styles = StyleSheet.create({
     header: {
         backgroundColor: '#A8D5BA',
         padding: 16,
+        paddingTop: 48,
         marginBottom: 16,
         flexDirection: 'column'
     },
