@@ -1,6 +1,6 @@
 // RewardScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TextInput, StyleSheet, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
+import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { FontAwesome } from '@expo/vector-icons';
 import { faTasks, faChild, faGift, faHouse } from '@fortawesome/free-solid-svg-icons';
@@ -10,11 +10,13 @@ import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase
 import uuid from 'react-native-uuid';
 
 interface Reward {
-    id: string;
+    docId: string;
+    rewardId: string;
     name: string;
     description: string;
     cost: number;
-    completed: boolean;
+    claimed: boolean;
+    childId: string;
 }
 
 const RewardScreen = () => {
@@ -26,19 +28,25 @@ const RewardScreen = () => {
     const [createRewardModalVisible, setCreateRewardModalVisible] = useState(false);
     const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
     const router = useRouter();
+    const [loading, setLoading] = useState<boolean>(true);
     
+    useEffect(() => {
+        fetchRewards();
+    }, []);
+
     const addRewardToFirestore = async () => {
         try {
             const rewardId = uuid.v4() // Generate unique ID
             const newReward = {
-                id: rewardId,
+                rewardId: rewardId,
                 name: rewardName,
                 description: rewardDescription,
                 cost: parseFloat(rewardCost),
-                completed: false
+                claimed: false,
+                childId: ""
             };
             const docRef = await addDoc(collection(FIRESTORE_DB, 'Rewards'), newReward);
-            setRewards((prevRewards) => [...prevRewards, { ...newReward, id: docRef.id }]);
+            setRewards((prevRewards) => [...prevRewards, { ...newReward, docId: docRef.id }]);
             setRewardName('');
             setRewardDescription('');
             setRewardCost('');
@@ -51,22 +59,24 @@ const RewardScreen = () => {
     const fetchRewards = async () => {
         try {
             const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Rewards'));
-            const fetchedRewards = querySnapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data()
+            const fetchedRewards: Reward[] = querySnapshot.docs.map((doc) => ({
+                rewardId: doc.data().rewardId,
+                ...doc.data(),
+                docId: doc.id
             } as Reward));
             setRewards(fetchedRewards);
+            setLoading(false);
         } catch (error) {
             console.error('Error fetching Rewards:', error);
         }
     };
 
-    const updateReward = async (rewardId: string, updatedName: string, updatedDescription: string, updatedCost: string) => {
+    const updateReward = async (reward: Reward,rewardId: string, updatedName: string, updatedDescription: string, updatedCost: string) => {
         try {
-            const rewardRef = doc(FIRESTORE_DB, 'Rewards', rewardId);
+            const rewardRef = doc(FIRESTORE_DB, 'Rewards', reward.docId);
             await updateDoc(rewardRef, { name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) });
             setRewards((prevRewards) => prevRewards.map((reward) => 
-                reward.id === rewardId ? { ...reward, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) } : reward
+                reward.rewardId === rewardId ? { ...reward, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) } : reward
             ));
             setModalVisible(false);
             setSelectedReward(null);
@@ -78,12 +88,13 @@ const RewardScreen = () => {
         }
     };
 
-    const deleteReward = async (rewardId: string) => {
+    const deleteReward = async (reward: Reward) => {
         try {
-            const rewardRef = doc(FIRESTORE_DB, 'Rewards', rewardId);
+            const rewardRef = doc(FIRESTORE_DB, 'Rewards', reward.docId);
             await deleteDoc(rewardRef);
-            setRewards((prevRewards) => prevRewards.filter((reward) => reward.id !== rewardId));
+            setRewards((prevRewards) => prevRewards.filter((prevReward) => prevReward.docId !== reward.docId));
             setModalVisible(false);
+            setSelectedReward(null);
         } catch (error) {
             console.error("Error deleting document: ", error);
         }
@@ -102,19 +113,24 @@ const RewardScreen = () => {
 
     const handleSave = () => {
         if (selectedReward) {
-            updateReward(selectedReward.id, selectedReward.name, selectedReward.description, selectedReward.cost.toString());
+            updateReward(selectedReward, selectedReward.rewardId, selectedReward.name, selectedReward.description, selectedReward.cost.toString());
         }
     };
 
     const handleDelete = () => {
         if (selectedReward) {
-            deleteReward(selectedReward.id);
+            deleteReward(selectedReward);
         }
     };
 
-    useEffect(() => {
-        fetchRewards();
-    }, []);
+    if (loading) {
+        return (
+        <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#0000ff" />
+            <Text>Loading Tasks...</Text>
+        </View>
+        );
+    }
 
     return (
         <KeyboardAvoidingView behavior="padding" style={styles.container}>
@@ -129,7 +145,7 @@ const RewardScreen = () => {
             <Text style={styles.title}>Manage Rewards</Text>
             <FlatList
                 data={rewards}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item) => item.rewardId || item.docId}
                 renderItem={renderReward}
             />
             
@@ -226,6 +242,11 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         alignSelf: 'center',
         paddingTop: 10
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     rewardItem: {
         borderRadius: 10,

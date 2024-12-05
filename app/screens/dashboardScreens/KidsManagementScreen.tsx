@@ -1,6 +1,6 @@
 // KidScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TextInput, StyleSheet, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
+import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { FontAwesome } from '@expo/vector-icons';
 import { faTasks, faChild, faGift, faHouse, faPlus } from '@fortawesome/free-solid-svg-icons';
@@ -10,10 +10,10 @@ import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase
 import uuid from 'react-native-uuid';
 
 interface Kid {
-    id: string;
+    docId: string;
+    kidId: string;
     name: string;
     age: number;
-    completed: boolean;
 }
 
 const KidScreen = () => {
@@ -24,6 +24,7 @@ const KidScreen = () => {
     const [createKidModalVisible, setCreateKidModalVisible] = useState(false);
     const [selectedKid, setSelectedKid] = useState<Kid | null>(null);
     const router = useRouter();
+    const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
         fetchKids();
@@ -33,13 +34,13 @@ const KidScreen = () => {
         try {
             const kidId = uuid.v4() // Generate unique ID
             const newKid = {
-                id: kidId,
+                kidId: kidId,
                 name: kidName,
                 age: parseFloat(kidAge) || 0,
-                completed: false,
             };
             const docRef = await addDoc(collection(FIRESTORE_DB, 'Kids'), newKid);
-            setKids((prevKids) => [...prevKids, { ...newKid, id: docRef.id }]);
+            setKids((prevKids) => [...prevKids, { ...newKid, docId: docRef.id }]);
+            console.log("New kid added with ID: ", docRef.id);
             setKidName('');
             setKidAge('');
             setCreateKidModalVisible(false);   
@@ -52,21 +53,23 @@ const KidScreen = () => {
         try {
             const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Kids'));
             const fetchedKids: Kid[] = querySnapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data()
+                kidId: doc.data().kidId,
+                ...doc.data(),
+                docId: doc.id
             } as Kid));
             setKids(fetchedKids);
+            setLoading(false);
         } catch (error) {
             console.error('Error fetching Kids:', error);
         }
     };
 
-    const updateKid = async (kidId: string, updatedName: string, updatedAge: string) => {
+    const updateKid = async (kid: Kid, kidId: string, updatedName: string, updatedAge: string) => {
         try {
-            const kidRef = doc(FIRESTORE_DB, 'Kids', kidId);
+            const kidRef = doc(FIRESTORE_DB, 'Kids', kid.docId);
             await updateDoc(kidRef, { name: updatedName, age: parseFloat(updatedAge) || 0 });
             setKids((prevKids) => prevKids.map((kid) => 
-                kid.id === kidId ? { ...kid, name: updatedName, age: parseFloat(updatedAge) || 0 } : kid
+                kid.kidId === kidId ? { ...kid, name: updatedName, age: parseFloat(updatedAge) || 0 } : kid
             ));
             setModalVisible(false);
             setSelectedKid(null);
@@ -77,11 +80,13 @@ const KidScreen = () => {
         }
     };
 
-    const deleteKid = async (kidId: string) => {
+    const deleteKid = async (kid: Kid) => {
         try {
-            const kidRef = doc(FIRESTORE_DB, 'Kids', kidId);
+            const kidRef = doc(FIRESTORE_DB, 'Kids', kid.docId);
+            console.log("kidRef", kidRef);
             await deleteDoc(kidRef);
-            setKids((prevKids) => prevKids.filter((kid) => kid.id !== kidId));
+            setKids((prevKids) => prevKids.filter((prevKid) => prevKid.docId !== kid.docId));
+            setSelectedKid(null);
             setModalVisible(false);
         } catch (error) {
             console.error("Error deleting document: ", error);
@@ -101,15 +106,24 @@ const KidScreen = () => {
 
     const handleSave = () => {
         if (selectedKid) {
-            updateKid(selectedKid.id, selectedKid.name, selectedKid.age.toString());
+            updateKid(selectedKid, selectedKid.kidId, selectedKid.name, selectedKid.age.toString());
         }
     };
 
     const handleDelete = () => {
         if (selectedKid) {
-            deleteKid(selectedKid.id);
+            deleteKid(selectedKid);
         }
     };
+
+    if (loading) {
+        return (
+        <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#0000ff" />
+            <Text>Loading Tasks...</Text>
+        </View>
+        );
+    }
 
     return (
         <KeyboardAvoidingView behavior="padding" style={styles.container}>
@@ -123,7 +137,7 @@ const KidScreen = () => {
             <Text style={styles.title}>Manage Kids</Text>
             <FlatList
                 data={kids}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item) => item.kidId || item.docId}
                 renderItem={renderKid}
             />
             
@@ -230,6 +244,11 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         alignSelf: 'center',
         paddingTop: 10
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     kidItem: {
         borderRadius: 10,

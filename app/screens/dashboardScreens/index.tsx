@@ -1,19 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Pressable, Dimensions, StyleSheet } from 'react-native';
+import { FIREBASE_DB as FIRESTORE_DB } from '../../../FirebaseConfig';
+import { collection, getDocs, onSnapshot, query } from 'firebase/firestore';
+import { 
+    View, 
+    Text, 
+    FlatList,
+    ActivityIndicator,
+    TouchableOpacity, 
+    Pressable, 
+    Dimensions, 
+    StyleSheet 
+} from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faGear, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-icons'; // Import specific icons
 import { Dropdown } from 'react-native-element-dropdown';
 import { BarChart } from 'react-native-chart-kit';
 import { useRouter } from 'expo-router';
 
-// Types for task and week
-interface Task {
+interface Kid {
+    kidId: string;
+    name: string;
+    age: number;
     id: string;
+}
+
+interface Task {
+    taskId: string;
     date: string;
     taskName: string;
     taskStatus: string;
     rewardAMT: string;
-    childID: string;
+    childId: string;
 }
   
 interface Week {
@@ -24,17 +41,28 @@ interface Week {
 
 const DashboardScreen = () => {
     const router = useRouter();
-    const [selectedKid, setSelectedKid] = useState('1');
+    const [loading, setLoading] = useState(true);
+    const [kids, setKids] = useState<Kid[]>([]);
+    const [selectedKid, setSelectedKid] = useState<Kid | null>(null);
     const [selectedWeek, setSelectedWeek] = useState<Week>({ label: 'This Week', startOfWeek: new Date(), endOfWeek: new Date() });
     const [recentTasks, setRecentTasks] = useState([
-        { id: '1', date: '2024-11-10', taskName: 'Task 1', taskStatus: 'Completed', rewardAMT: '5', childID: '1' },
-        { id: '2', date: '2024-12-3', taskName: 'Task 2', taskStatus: 'Completed', rewardAMT: '5', childID: '1' },
-        { id: '3', date: '2024-12-3', taskName: 'Task 3', taskStatus: 'In Progress', rewardAMT: '5', childID: '2' },
-        { id: '4', date: '2024-12-3', taskName: 'Task 4', taskStatus: 'Completed', rewardAMT: '10', childID: '2' },
-        { id: '5', date: '2024-12-3', taskName: 'Task 5', taskStatus: 'Completed', rewardAMT: '10', childID: '1' },
+        { taskId: '1', date: '2024-12-5', taskName: 'Task 1', taskStatus: 'Completed', rewardAMT: '5', childId: 'ce981757-81df-4e00-a756-cd3a4571bba1', childName: "Dustin" },
+        { taskId: '2', date: '2024-12-3', taskName: 'Task 2', taskStatus: 'Completed', rewardAMT: '5', childId: 'ce981757-81df-4e00-a756-cd3a4571bba1', childName: "Dustin" },
+        { taskId: '3', date: '2024-12-4', taskName: 'Task 3', taskStatus: 'In Progress', rewardAMT: '5', childId: 'ce981757-81df-4e00-a756-cd3a4571bba1', childName: "Dustin" },
+        { taskId: '4', date: '2024-12-2', taskName: 'Task 4', taskStatus: 'Completed', rewardAMT: '10', childId: '7f7b3912-77d6-4571-91bf-1cfd3ace57e8', childName: "Yaneli" },
+        { taskId: '5', date: '2024-12-7', taskName: 'Task 5', taskStatus: 'Completed', rewardAMT: '10', childId: 'ce981757-81df-4e00-a756-cd3a4571bba1', childName: "Dustin" },
     ]);
 
-    // Initialize selected week in useEffect to avoid overwriting it during render
+    // Dynamically fetch kids data
+    useEffect(() => {
+        const unsubscribe = fetchKids();
+    
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
+    }, []);
+
+    // Default to the current week for the dropdown
     useEffect(() => {
         const currentDate = new Date();
         const startOfWeek = getStartOfWeek(currentDate);
@@ -47,11 +75,36 @@ const DashboardScreen = () => {
         setSelectedWeek(currentWeek); // Set the current week as default
     }, []);
 
-    // Helper functions
+    // Fetch kids data dynamically from Firebase
+    const fetchKids = () => {
+        try {
+            const kidsCollection = collection(FIRESTORE_DB, 'Kids');
+            const q = query(kidsCollection);
+            const unsubscribe = onSnapshot(q, (querySnapshot) => {
+                const fetchedKids: Kid[] = querySnapshot.docs.map((doc) => ({
+                    kidId: doc.data().kidId,
+                    ...doc.data(),
+                    id: doc.id
+                } as Kid));
+                setKids(fetchedKids);
+                if (fetchedKids.length > 0 && !selectedKid) {
+                    setSelectedKid(fetchedKids[0]);
+                }
+            });
+            return unsubscribe;
+        } catch (error) {
+            console.error('Error fetching kids:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+    // Helper functions to get start and 
+    // end dates of a week and format them
     const getStartOfWeek = (date: Date | null) => {
         if(!date){    
             var today = new Date();
-            console.log("Today", today);
         }
         else{
             var today = new Date(date);
@@ -63,7 +116,6 @@ const DashboardScreen = () => {
     const getEndOfWeek = (date: Date | null) => {
         if(!date){    
             var today = new Date();
-            console.log("Today", today);
         }
         else{
             var today = new Date(date);
@@ -72,10 +124,7 @@ const DashboardScreen = () => {
         var startOfWeek = new Date(today.setDate(start));
    
         return new Date(startOfWeek.setDate(startOfWeek.getDate() + 6 ));
-
-        // return endOfWeek;
     };
-    console.log("Weeksss", getStartOfWeek(null), getEndOfWeek(null));
     
     const formatDate = (date: Date) => {
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -118,6 +167,45 @@ const DashboardScreen = () => {
         return weeks;
     };
 
+    // Helper function to set hours, minutes, seconds, and milliseconds to 0
+    const normalizeDate = (date: Date) => {
+        const normalized = new Date(date);
+        normalized.setHours(0, 0, 0, 0);
+        return normalized;
+    };
+
+    // Function to get task data for each day of the week
+    const getTaskDataForWeek = (): number[] => {
+        if (!selectedKid || !selectedWeek) return Array(7).fill(0);
+    
+        const taskCountPerDay = Array(7).fill(0);
+        const normalizedStart = normalizeDate(selectedWeek.startOfWeek);
+        const normalizedEnd = normalizeDate(selectedWeek.endOfWeek);
+
+        const filteredTasks = recentTasks.filter((task) => {
+            const taskDate = normalizeDate(new Date(task.date));
+            return (
+                task.taskStatus === 'Completed' &&
+                task.childId === selectedKid.kidId &&
+                taskDate >= normalizedStart &&
+                taskDate <= normalizedEnd
+            );
+        });
+    
+        filteredTasks.forEach((task) => {
+            const taskDate = new Date(task.date);
+            const dayIndex = taskDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+            taskCountPerDay[dayIndex] += 1;
+        });
+        
+        return taskCountPerDay;
+    };
+    
+
+    const weeks = getAvailableWeeks();
+    const taskDataForWeek = getTaskDataForWeek();
+
+
     // Get completed tasks sorted by date in descending order
     const getSortedCompletedTasks = () => {
         return recentTasks
@@ -125,47 +213,36 @@ const DashboardScreen = () => {
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort tasks by date (most recent first)
     };
 
-    const onWeekSelect = (week: Week) => {
-        setSelectedWeek(week);
-    };
-
-    // Get task data for week
-    const getTaskDataForWeek = (): number[] => {
-        const taskCountPerDay = Array(7).fill(0);
-        const filteredTasks = recentTasks.filter(
-          (task) =>
-            task.taskStatus === 'Completed' &&
-            task.childID === selectedKid &&
-            selectedWeek &&
-            new Date(task.date) >= selectedWeek.startOfWeek &&
-            new Date(task.date) <= selectedWeek.endOfWeek
-        );
-    
-        filteredTasks.forEach((task) => {
-          const taskDate = new Date(task.date);
-          const dayIndex = taskDate.getDay();
-          taskCountPerDay[dayIndex] += 1;
-        });
-        return taskCountPerDay;
-    };
-
-    const taskDataForWeek = getTaskDataForWeek();
-    const weeks = getAvailableWeeks();
-
     // Render each task in the recent tasks list
-    const renderTask = ({ item }: { item: Task }) => (
-        <View style={styles.taskBubble}>
-            <View style={styles.taskDate}>
-                <Text>{item.date}</Text>
+    const renderTask = ({ item }: { item: Task }) => {
+        const taskKid = kids.find(kid => kid.kidId === item.childId);
+        
+        return (
+            <View style={styles.taskBubble}>
+                <View style={styles.taskDate}>
+                    <Text>{item.date}</Text>
+                </View>
+                <View style={styles.taskKidInfo}>
+                    {/* Show the kid's name if found, otherwise fallback to a generic message */}
+                    <Text style={styles.kidInfoText}>
+                        Completed by Kid {taskKid ? taskKid.name : 'Unknown'}
+                    </Text>
+                </View>
+                <View style={styles.taskName}>
+                    <Text style={styles.taskNameText}>{item.taskName}</Text>
+                </View>
             </View>
-            <View style={styles.taskKidInfo}>
-                <Text style={styles.kidInfoText}>Completed by Kid {item.childID}</Text>
-            </View>
-            <View style={styles.taskName}>
-                <Text style={styles.taskNameText}>{item.taskName}</Text>
-            </View>
+        );
+    };
+
+    if (loading) {
+        return (
+        <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#0000ff" />
+            <Text>Loading Tasks...</Text>
         </View>
-    );
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -185,19 +262,42 @@ const DashboardScreen = () => {
             </View>
 
             {/* Tabs to switch between kids */}
-            <View style={styles.kidTabs}>
-                <TouchableOpacity 
-                    style={[styles.tabButton, selectedKid === '1' && styles.selectedTab]}
-                    onPress={() => setSelectedKid('1')}
-                >
-                    <Text>Kid 1</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                    style={[styles.tabButton, selectedKid === '2' && styles.selectedTab]}
-                    onPress={() => setSelectedKid('2')}
-                >
-                    <Text>Kid 2</Text>
-                </TouchableOpacity>
+            <View>    
+                <FlatList
+                    horizontal
+                    data={kids}
+                    keyExtractor={(item) => item.kidId}
+                    renderItem={({ item: kid }) => (
+                        <TouchableOpacity
+                            style={[
+                                styles.tab,
+                                selectedKid?.kidId === kid.kidId ? styles.selectedTab : null,
+                            ]}
+                            onPress={() => setSelectedKid(kid)}
+                        >
+                            <Text
+                                style={[
+                                    styles.tabText,
+                                    selectedKid?.kidId === kid.kidId ? styles.selectedTabText : null,
+                                ]}
+                            >
+                                {kid.name}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+                    contentContainerStyle={styles.tabsContentContainer}
+                />
+
+                {/* Selected Kid's Details */}
+                {selectedKid ? (
+                    <View style={styles.detailsContainer}>
+                        <Text style={styles.detailsText}>
+                            Viewing details for: {selectedKid.name}
+                        </Text>
+                    </View>
+                ) : (
+                    <Text style={styles.noKidsText}>No kids available</Text>
+                )}
             </View>
 
             {/* Section displaying tasks completed this week */}
@@ -205,7 +305,7 @@ const DashboardScreen = () => {
                 <View style={styles.taskSummary}>
                     <Dropdown
                         style={styles.dropdown}
-                        data={weeks.map((week) => ({ label: week.label, value: week }))}
+                        data={weeks.map((week) => ({ label: week.label, value: week, key: week.label }))}
                         labelField="label"
                         valueField="value"
                         placeholder={selectedWeek?.label}
@@ -243,7 +343,7 @@ const DashboardScreen = () => {
             <Text style={styles.recentTasks}>Recent Tasks</Text>
             <FlatList
                 data={getSortedCompletedTasks()}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item) => item.taskId}
                 renderItem={renderTask}
                 ListEmptyComponent={<Text>No recent tasks.</Text>}
             />
@@ -300,17 +400,49 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: 16
     },
-    kidTabs: {
-        flexDirection: 'row',
-        marginTop: 16,
-        paddingHorizontal: 16
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    tabButton: { 
-        padding: 10 
+    tabsContainer: {
+        marginVertical: 10,
+    },
+    tab: {
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        marginRight: 15,
+        marginTop: 10,
+        backgroundColor: '#f0f0f0',
+        borderRadius: 10,
     },
     selectedTab: {
-        borderBottomWidth: 2,
-        borderBottomColor: '#000'
+        backgroundColor: '#A8D5BA',
+    },
+    tabText: {
+        fontSize: 16,
+        color: '#333',
+    },
+    selectedTabText: {
+        fontWeight: 'bold',
+        color: '#FFF',
+    },
+    tabsContentContainer: {
+        paddingHorizontal: 10,
+    },
+    detailsContainer: {
+        paddingTop: 16,
+        paddingHorizontal: 16,
+        backgroundColor: '#FFF',
+    },
+    detailsText: {
+        fontSize: 16,
+        color: '#333',
+    },
+    noKidsText: {
+        fontSize: 16,
+        color: '#888',
+        textAlign: 'center',
     },
     graphSection: {
         marginBottom: 5,
