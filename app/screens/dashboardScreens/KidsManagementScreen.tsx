@@ -14,11 +14,13 @@ interface Kid {
     kidId: string;
     name: string;
     age: number;
+    coinCount: number;
 }
 
 const KidScreen = () => {
     const [kidName, setKidName] = useState('');
     const [kidAge, setKidAge] = useState('');
+    const [kidCoinCount, setKidCoinCount] = useState('');
     const [kids, setKids] = useState<Kid[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [createKidModalVisible, setCreateKidModalVisible] = useState(false);
@@ -37,12 +39,14 @@ const KidScreen = () => {
                 kidId: kidId,
                 name: kidName,
                 age: parseFloat(kidAge) || 0,
+                coinCount: 0
             };
             const docRef = await addDoc(collection(FIRESTORE_DB, 'Kids'), newKid);
             setKids((prevKids) => [...prevKids, { ...newKid, docId: docRef.id }]);
             console.log("New kid added with ID: ", docRef.id);
             setKidName('');
             setKidAge('');
+            setKidCoinCount('');
             setCreateKidModalVisible(false);   
         } catch (error) {
             console.error("Error adding document: ", error);

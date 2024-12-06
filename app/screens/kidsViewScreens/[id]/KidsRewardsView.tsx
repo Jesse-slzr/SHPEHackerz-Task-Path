@@ -6,47 +6,233 @@ import {
     Image,
     ActivityIndicator,
     FlatList,
+    Modal,
     StyleSheet,
 } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faArrowLeft, faCircleUser } from '@fortawesome/free-solid-svg-icons';
 import { useLocalSearchParams, router } from 'expo-router';
+import { collection, getDocs, addDoc, setDoc, query, where, onSnapshot } from 'firebase/firestore';
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../../FirebaseConfig';
-import { collection, getDocs } from 'firebase/firestore';
+import uuid from 'react-native-uuid';
 
 interface Reward {
-    id: string,
+    docId: string,
+    rewardId: string,
     name: string,
     description: string,
     cost: number,
     completed: boolean
 }
 
+interface RewardCompletion {
+    docId: string;
+    rewardCompletionId: string;
+    kidId: string;
+    rewardId: string;
+    dateCompleted: Date;
+}
+
+// Function to add reward completion to Firestore
+const addRewardCompletion = async (kidId: string, rewardId: string) => {
+    if (!kidId || !rewardId) {
+        console.error("Invalid kidId or rewardId:", { kidId, rewardId });
+        return false;
+    }
+    try {
+        // Check if reward is already completed for the kid
+        const completionsRef = collection(FIRESTORE_DB, 'RewardCompletions');
+        const completionQuery = query(
+            completionsRef,
+            where('kidId', '==', kidId),
+            where('rewardId', '==', rewardId)
+        );
+        const existingCompletions = await getDocs(completionQuery);
+
+        if (!existingCompletions.empty) {
+            console.log('Task already completed!');
+            return false; // Avoid duplicate entries
+        }
+
+        // Add new task completion
+        const generatedId = uuid.v4()
+        await addDoc(completionsRef, {
+            rewardCompletionId: generatedId,
+            kidId,
+            rewardId,
+            dateCompleted: new Date(), // Timestamp of completion
+        });
+
+        return true;
+    } catch (error) {
+        console.error('Error logging task completion:', error);
+        return false;
+    }
+};
+
+// Function to render a reward card
+const renderRewardCard = (
+    reward: Reward,
+    completions: RewardCompletion[],
+    styles: any,
+    setSelectedReward: React.Dispatch<React.SetStateAction<Reward | null>>,
+    setModalVisible: React.Dispatch<React.SetStateAction<boolean>>
+) => {
+    // Check if the task is completed by the kid
+    const isCompleted = completions.some((completion) => completion.rewardId === reward.rewardId);
+
+    return (
+        <View style={styles.rewardCard}>
+            <View style={styles.rewardHeader}>
+                <Text style={styles.rewardName}>{reward.name}</Text>
+                {isCompleted ? (
+                    <Text style={styles.rewardCheck}>✔️</Text>
+                ) : (
+                    <Pressable
+                        onPress={() => {
+                            setSelectedReward(reward);
+                            setModalVisible(true);
+                        }}
+                    >
+                        <Text style={styles.claimText}>Claim</Text>
+                    </Pressable>
+                )}
+            </View>
+            <Text style={styles.rewardDescription}>Description: {reward.description}</Text>
+            <Text style={styles.rewardCost}>💰 {reward.cost} Coins</Text>
+        </View>
+    );
+};
+
 const KidsRewardsView = () => {
     const params = useLocalSearchParams<{ id: string, name: string, age: string, completed: string }>();
     const kidId = params.id;
+    const [kidCoins, setKidCoins] = useState<number>(0);
     const [rewards, setRewards] = useState<Reward[]>([]);
+    const [completions, setCompletions] = useState<RewardCompletion[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+    const [modalVisible, setModalVisible] = useState<boolean>(false);
+    const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
 
     useEffect(() => {
-        fetchRewards();
-    }, [kidId]);
+        const kidRef = collection(FIRESTORE_DB, 'Kids');
+        const kidQuery = query(kidRef, where('kidId', '==', kidId));
     
-    const fetchRewards = async () => {
+        const unsubscribe = onSnapshot(kidQuery, (snapshot) => {
+            if (!snapshot.empty) {
+                const kidData = snapshot.docs[0].data();
+                setKidCoins(kidData.coinCount || 0); // Update the state in real-time
+            }
+        });
+    
+        return unsubscribe; // Cleanup the listener on unmount
+    }, [kidId]);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            const rewardsRef = collection(FIRESTORE_DB, 'Rewards');
+            const completionsRef = collection(FIRESTORE_DB, 'RewardCompletions');
+    
+            try {
+                // Fetching rewards
+                const rewardSnapshot = await getDocs(rewardsRef);
+                const fetchedRewards: Reward[] = rewardSnapshot.docs.map((doc) => ({
+                    rewardId: doc.data().rewardId,
+                    ...doc.data(),
+                    docId: doc.id,
+                } as Reward));
+    
+                // Fetching reward completions for the kid
+                const completionsQuery = query(completionsRef, where('kidId', '==', kidId));
+                const completionsSnapshot = await getDocs(completionsQuery);
+    
+                const fetchedCompletions: RewardCompletion[] = completionsSnapshot.docs.map((doc) => ({
+                    rewardCompletionId: doc.data().rewardCompletionId,
+                    ...doc.data(),
+                    docId: doc.id,
+                } as RewardCompletion));
+    
+                // Map completed status to rewards
+                const completedRewardIds = fetchedCompletions.map((completion) => completion.rewardId);
+                const updatedRewards = fetchedRewards.map((reward) => ({
+                    ...reward,
+                    completed: completedRewardIds.includes(reward.rewardId),
+                }));
+    
+                setRewards(updatedRewards);
+                setCompletions(fetchedCompletions);
+            } catch (error) {
+                console.error("Error fetching rewards or completions:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+    
+        fetchData();
+    }, [kidId]);
+
+    useEffect(() => {
+        const completionsRef = collection(FIRESTORE_DB, 'RewardCompletions');
+        const completionsQuery = query(completionsRef, where('kidId', '==', kidId));
+
+        const unsubscribe = onSnapshot(completionsQuery, (snapshot) => {
+            const fetchedCompletions: RewardCompletion[] = snapshot.docs.map((doc) => ({
+                rewardCompletionId: doc.data().rewardCompletionId,
+                ...doc.data(),
+                docId: doc.id,
+            } as RewardCompletion));
+            setCompletions(fetchedCompletions);
+        });
+
+        return unsubscribe;
+    }, [kidId]);
+
+    const updateCoinCount = async (kidId: string, incrementBy: number) => {
         try {
-            const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Rewards'));
-            const fetchedRewards = querySnapshot.docs.map((doc) => ({
-                id: doc.id,
-                name: doc.data().name,
-                description: doc.data().description,
-                cost: doc.data().cost,
-                completed: doc.data().completed,
-        }));
-        setRewards(fetchedRewards);
+            const kidRef = collection(FIRESTORE_DB, 'Kids');
+            const kidQuery = query(kidRef, where('kidId', '==', kidId));
+            const kidSnapshot = await getDocs(kidQuery);
+    
+            if (!kidSnapshot.empty) {
+                const kidDoc = kidSnapshot.docs[0]; // Assuming `kidId` is unique
+                const currentCoins = kidDoc.data().coinCount || 0;
+    
+                // Update coin count
+                await setDoc(kidDoc.ref, { coinCount: currentCoins - incrementBy }, { merge: true });
+            }
         } catch (error) {
-            console.error('Error fetching rewards:', error);
+            console.error('Error updating coin count:', error);
+        }
+    };
+    
+    const handleClaimReward = async () => {
+        // setSelectedReward(reward);
+        if (!selectedReward) return;
+        
+        if (kidCoins < selectedReward.cost) {
+            alert('Not enough coins to claim this reward!');
+            setModalVisible(false);
+            setSelectedReward(null);
+            return;
+        }
+
+        try {
+            const success = await addRewardCompletion(kidId, selectedReward.rewardId);
+    
+            if (success) {
+                setRewards((prevRewards) =>
+                    prevRewards.map((reward) =>
+                        reward.rewardId === selectedReward.rewardId ? { ...reward, completed: true } : reward
+                    )
+                );
+
+                await updateCoinCount(kidId, selectedReward.cost);
+            }
+        } catch (error) {
+            console.error('Error claiming reward:', error);
         } finally {
-            setLoading(false);
+            setModalVisible(false);
+            setSelectedReward(null);
         }
     };
 
@@ -69,7 +255,7 @@ const KidsRewardsView = () => {
                     </Pressable>
                     <View>
                         <Text style={styles.kidName}>{params.name}</Text>
-                        <Text style={styles.coinText}>💰 10 Coins</Text>
+                        <Text style={styles.coinText}>💰 {kidCoins} Coins</Text>
                     </View>
                     <FontAwesomeIcon icon={faCircleUser} size={80} color="black" />
                 </View>
@@ -77,26 +263,26 @@ const KidsRewardsView = () => {
                 {/* Rewards/Tasks Button Section */}
                 <View style={styles.buttonContainer}>
                     <Pressable
-                    style={[styles.button, styles.rewardsButton]}
-                    onPress={() =>
-                        router.push({
-                        pathname: '/screens/kidsViewScreens/[id]/KidsRewardsView',
-                        params: { id: params.id, name: params.name },
-                        })
-                    }
+                        style={[styles.button, styles.rewardsButton]}
+                        onPress={() =>
+                            router.push({
+                            pathname: '/screens/kidsViewScreens/[id]/KidsRewardsView',
+                            params: { id: params.id, name: params.name },
+                            })
+                        }
                     >
-                    <Text style={styles.buttonText}>Rewards</Text>
+                        <Text style={styles.buttonText}>Rewards</Text>
                     </Pressable>
                     <Pressable
-                    style={[styles.button, styles.tasksButton]}
-                    onPress={() =>
-                        router.push({
-                        pathname: '/screens/kidsViewScreens/[id]',
-                        params: { id: params.id, name: params.name },
-                        })
-                    }
+                        style={[styles.button, styles.tasksButton]}
+                        onPress={() =>
+                            router.push({
+                            pathname: '/screens/kidsViewScreens/[id]',
+                            params: { id: params.id, name: params.name },
+                            })
+                        }
                     >
-                    <Text style={styles.buttonText}>Tasks</Text>
+                        <Text style={styles.buttonText}>Tasks</Text>
                     </Pressable>
                 </View>
             </View>
@@ -104,18 +290,37 @@ const KidsRewardsView = () => {
             {/* Rewards List */}
             <FlatList
                 data={rewards}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                    <View style={styles.rewardCard}>
-                        <View style={styles.rewardHeader}>
-                            <Text style={styles.rewardName}>{item.name}</Text>
-                            <Text style={styles.rewardCheck}>X</Text>
-                        </View>
-                        <Text style={styles.rewardDescription}>Description: {item.description}</Text>
-                        <Text style={styles.rewardCost}>💰 {item.cost} Coins</Text>
-                    </View>
-                )}
+                keyExtractor={(item) => item.rewardId || item.docId}
+                renderItem={({ item }) =>
+                    renderRewardCard(item, completions, styles, setSelectedReward, setModalVisible)
+                }
             />
+
+            {/* Claim Task Modal */}
+            <Modal visible={modalVisible} animationType="slide" transparent={true}>
+                <View style={styles.modalContainer}>
+                    <Text style={styles.modalClaimText}>
+                        Are you sure you want to claim the REWARD!
+                    </Text>
+                    <Text style={styles.modalRewardText}>
+                        {selectedReward?.name}?
+                    </Text>
+                    <View style={styles.modalButtons}>
+                        <Pressable style={styles.modalButton} onPress={handleClaimReward}>
+                            <Text style={styles.modalButtonText}>Yes</Text>
+                        </Pressable>
+                        <Pressable
+                            style={styles.modalButton}
+                            onPress={() => {
+                                setModalVisible(false);
+                                setSelectedReward(null);
+                            }}
+                        >
+                            <Text style={styles.modalButtonText}>No</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -125,17 +330,17 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#fff',
     },
-    kidHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
     header: {
         backgroundColor: '#A8D5BA',
         padding: 16,
         paddingTop: 48,
         marginBottom: 16,
         flexDirection: 'column'
+    },
+    kidHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     headerButton: {
         position: 'absolute',
@@ -180,11 +385,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         elevation: 2,
     },
-    rewardsButton: {
-        backgroundColor: '#fff',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-    },
     tasksButton: {
         backgroundColor: '#A8D5BA',
         shadowColor: '#000',
@@ -196,6 +396,11 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#333',
+    },
+    rewardsButton: {
+        backgroundColor: '#fff',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
     },
     loadingContainer: {
         flex: 1,
@@ -225,6 +430,10 @@ const styles = StyleSheet.create({
         fontSize: 18,
         color: '#4CAF50',
     },
+    claimText: { 
+        color: 'black', 
+        fontWeight: 'bold' 
+    },
     rewardDescription: {
         fontSize: 16,
         marginBottom: 8,
@@ -233,6 +442,43 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         color: '#555',
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    },
+    modalClaimText: { 
+        fontSize: 18,
+        marginBottom: 20,
+        textAlign: 'center',
+        color: '#fff'
+    },
+    modalRewardText: {
+        fontSize: 30,
+        marginBottom: 20,
+        textAlign: 'center',
+        color: '#fff',
+        fontWeight: 'bold',
+    },
+    modalButtons: {
+        flexDirection: 'row',
+    },
+    modalButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    modalButton: {
+        backgroundColor: '#ccc',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 5,
+        marginHorizontal: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 10
     },
 });
 
