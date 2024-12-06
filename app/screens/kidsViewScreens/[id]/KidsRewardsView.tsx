@@ -3,7 +3,6 @@ import {
     View,
     Pressable,
     Text,
-    Image,
     ActivityIndicator,
     FlatList,
     Modal,
@@ -94,7 +93,7 @@ const renderRewardCard = (
                             setModalVisible(true);
                         }}
                     >
-                        <Text style={styles.claimText}>Claim</Text>
+                        <Text style={styles.claimText}>Redeem</Text>
                     </Pressable>
                 )}
             </View>
@@ -300,7 +299,7 @@ const KidsRewardsView = () => {
             <Modal visible={modalVisible} animationType="slide" transparent={true}>
                 <View style={styles.modalContainer}>
                     <Text style={styles.modalClaimText}>
-                        Are you sure you want to claim the REWARD!
+                        Are you sure you want to redeem the REWARD!
                     </Text>
                     <Text style={styles.modalRewardText}>
                         {selectedReward?.name}?
