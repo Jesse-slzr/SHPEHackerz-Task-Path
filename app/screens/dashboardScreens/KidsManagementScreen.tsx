@@ -1,68 +1,79 @@
-// KidScreen.js
+// KidScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TextInput, Button, StyleSheet, Pressable, Modal, KeyboardAvoidingView, TouchableOpacity } from 'react-native';
+import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { FontAwesome } from '@expo/vector-icons';
 import { faTasks, faChild, faGift, faHouse, faPlus } from '@fortawesome/free-solid-svg-icons';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { FIREBASE_DB as FIRESTORE_DB} from '../../../FirebaseConfig';
 import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import uuid from 'react-native-uuid';
 
-const KidScreen = ({ navigation }) => {
-    const [KidName, setKidName] = useState('');
-    const [KidAge, setKidAge] = useState('');
-    const [Kids, setKids] = useState([]);
+interface Kid {
+    docId: string;
+    kidId: string;
+    name: string;
+    age: number;
+    coinCount: number;
+}
+
+const KidScreen = () => {
+    const [kidName, setKidName] = useState('');
+    const [kidAge, setKidAge] = useState('');
+    const [kidCoinCount, setKidCoinCount] = useState('');
+    const [kids, setKids] = useState<Kid[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [createKidModalVisible, setCreateKidModalVisible] = useState(false);
-    const [selectedKid, setSelectedKid] = useState(null);
+    const [selectedKid, setSelectedKid] = useState<Kid | null>(null);
     const router = useRouter();
+    const [loading, setLoading] = useState<boolean>(true);
+
+    useEffect(() => {
+        fetchKids();
+    }, []);
 
     const addKidToFirestore = async () => {
         try {
-            const KidId = uuid.v4() // Generate unique ID
-            const docRef = await addDoc(collection(FIRESTORE_DB, 'Kids'), {
-                id: KidId,
-                name: KidName,
-                age: parseFloat(KidAge) || 0,
-                completed: false
-            });
-            console.log("Document written with ID: ", docRef.id);
-            setKids((prevKids) => [
-                ...prevKids,
-                { id: docRef.id, name: KidName, age: parseFloat(KidAge), completed: false }
-            ]);
+            const kidId = uuid.v4() // Generate unique ID
+            const newKid = {
+                kidId: kidId,
+                name: kidName,
+                age: parseFloat(kidAge) || 0,
+                coinCount: 0
+            };
+            const docRef = await addDoc(collection(FIRESTORE_DB, 'Kids'), newKid);
+            setKids((prevKids) => [...prevKids, { ...newKid, docId: docRef.id }]);
+            console.log("New kid added with ID: ", docRef.id);
             setKidName('');
             setKidAge('');
+            setKidCoinCount('');
             setCreateKidModalVisible(false);   
         } catch (error) {
             console.error("Error adding document: ", error);
         }
     };
 
-    
-
     const fetchKids = async () => {
         try {
             const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Kids'));
-            const fetchedKids = querySnapshot.docs.map((doc) => ({
-                id: doc.id,
-                name: doc.data().name,
-                age: doc.data().age,
-                completed: doc.data().completed
-            }));
+            const fetchedKids: Kid[] = querySnapshot.docs.map((doc) => ({
+                kidId: doc.data().kidId,
+                ...doc.data(),
+                docId: doc.id
+            } as Kid));
             setKids(fetchedKids);
+            setLoading(false);
         } catch (error) {
             console.error('Error fetching Kids:', error);
         }
     };
 
-    const updateKid = async (KidId, updatedName, updatedAge) => {
+    const updateKid = async (kid: Kid, kidId: string, updatedName: string, updatedAge: string) => {
         try {
-            const KidRef = doc(FIRESTORE_DB, 'Kids', KidId);
-            await updateDoc(KidRef, { name: updatedName, age: parseFloat(updatedAge) || 0 });
-            setKids((prevKids) => prevKids.map((Kid) => 
-                Kid.id === KidId ? { ...Kid, name: updatedName, age: parseFloat(updatedAge) || 0 } : Kid
+            const kidRef = doc(FIRESTORE_DB, 'Kids', kid.docId);
+            await updateDoc(kidRef, { name: updatedName, age: parseFloat(updatedAge) || 0 });
+            setKids((prevKids) => prevKids.map((kid) => 
+                kid.kidId === kidId ? { ...kid, name: updatedName, age: parseFloat(updatedAge) || 0 } : kid
             ));
             setModalVisible(false);
             setSelectedKid(null);
@@ -73,65 +84,64 @@ const KidScreen = ({ navigation }) => {
         }
     };
 
-    const deleteKid = async (KidId) => {
+    const deleteKid = async (kid: Kid) => {
         try {
-            const KidRef = doc(FIRESTORE_DB, 'Kids', KidId);
-            await deleteDoc(KidRef);
-            setKids((prevKids) => prevKids.filter((Kid) => Kid.id !== KidId));
+            const kidRef = doc(FIRESTORE_DB, 'Kids', kid.docId);
+            console.log("kidRef", kidRef);
+            await deleteDoc(kidRef);
+            setKids((prevKids) => prevKids.filter((prevKid) => prevKid.docId !== kid.docId));
+            setSelectedKid(null);
             setModalVisible(false);
         } catch (error) {
             console.error("Error deleting document: ", error);
         }
     };
 
-    const renderKid = ({ item }) => (
-        <Pressable style={styles.KidItem} onPress={() => openKidModal(item)}>
+    const renderKid = ({ item }: { item: Kid}) => (
+        <Pressable style={styles.kidItem} onPress={() => openKidModal(item)}>
             <Text>{item.name}</Text>
         </Pressable>
     );
 
-    const openKidModal = (Kid) => {
-        setSelectedKid(Kid);
+    const openKidModal = (kid: Kid) => {
+        setSelectedKid(kid);
         setModalVisible(true);
     };
 
     const handleSave = () => {
         if (selectedKid) {
-            updateKid(selectedKid.id, selectedKid.name, selectedKid.age);
+            updateKid(selectedKid, selectedKid.kidId, selectedKid.name, selectedKid.age.toString());
         }
     };
 
     const handleDelete = () => {
         if (selectedKid) {
-            deleteKid(selectedKid.id);
+            deleteKid(selectedKid);
         }
     };
 
-    const handleKidNameChange = (text) => { // New function to handle KidName change
-        const formattedText = text.replace(/[^a-zA-Z\s]/g, ''); // Remove non-letter characters
-        const capitalizedText = formattedText.replace(/\b\w/g, char => char.toUpperCase()); // Capitalize first letter of each word
-        setKidName(capitalizedText);
-    };
-
-
-    useEffect(() => {
-        fetchKids();
-    }, []);
+    if (loading) {
+        return (
+        <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#0000ff" />
+            <Text>Loading Tasks...</Text>
+        </View>
+        );
+    }
 
     return (
         <KeyboardAvoidingView behavior="padding" style={styles.container}>
-            
             {/* Header with settings and navigation to kids view */}
             <View style={styles.header}>
-                <Pressable onPress={() => router.push('/screens/dashboardScreens')} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                <Pressable onPress={() => router.push('../dashboardScreens')} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
                     <FontAwesomeIcon icon={faHouse} size={24} color="black" />
                 </Pressable>
             </View>
 
             <Text style={styles.title}>Manage Kids</Text>
             <FlatList
-                data={Kids}
-                keyExtractor={(item) => item.id}
+                data={kids}
+                keyExtractor={(item) => item.kidId || item.docId}
                 renderItem={renderKid}
             />
             
@@ -148,7 +158,7 @@ const KidScreen = ({ navigation }) => {
                             placeholder="Edit Kid name" 
                             placeholderTextColor="#333" 
                             value={selectedKid ? selectedKid.name : ''} 
-                            onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, name: text }))} 
+                            onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, name: text }) as Kid | null)} 
                         />
 
                         <Text>Kid Age:</Text>
@@ -158,7 +168,7 @@ const KidScreen = ({ navigation }) => {
                             placeholderTextColor="#333" 
                             keyboardType="numeric" 
                             value={selectedKid ? String(selectedKid.age) : ''} 
-                            onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, age: text.replace(/[^0-9]/g, '') }))} // Ensure only numeric input
+                            onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, age: parseInt(text.replace(/[^0-9]/g, ''), 10) }) as Kid | null)} 
                         />
 
                         <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
@@ -188,8 +198,8 @@ const KidScreen = ({ navigation }) => {
                 <View style={styles.centeredView}>
                     <View style={styles.modalView}>
                         <Text style={{ marginVertical: 5, textAlign: 'center', fontWeight: 'bold' }}>Create Kid</Text>
-                        <TextInput style={styles.input} placeholder="Kid Name" placeholderTextColor="#333" value={KidName} onChangeText={setKidName} />
-                        <TextInput style={styles.input} placeholder="Age" placeholderTextColor="#333" keyboardType="numeric" value={KidAge} onChangeText={setKidAge} />
+                        <TextInput style={styles.input} placeholder="Kid Name" placeholderTextColor="#333" value={kidName} onChangeText={setKidName} />
+                        <TextInput style={styles.input} placeholder="Age" placeholderTextColor="#333" keyboardType="numeric" value={kidAge} onChangeText={setKidAge} />
                         <Pressable style={styles.plusButtonStyle} onPress={addKidToFirestore}>
                             <FontAwesome name="plus" size={12} color="black" />
                         </Pressable>
@@ -223,10 +233,14 @@ const styles = StyleSheet.create({
     },
     header: {
         padding: 16,
+        paddingTop: 48,
         backgroundColor: '#A8D5BA',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center'
+    },
+    headerButton: {
+        padding: 10
     },
     title: {
         fontSize: 24,
@@ -235,16 +249,12 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         paddingTop: 10
     },
-    input: {
-        marginTop: 10,
-        borderWidth: 1,
-        width: '50%',
-        alignSelf: 'center',
-        borderColor: '#ccc',
-        padding: 10,
-        marginBottom: 10
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    KidItem: {
+    kidItem: {
         borderRadius: 10,
         marginVertical: 5,
         width: '50%',
@@ -271,6 +281,15 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 5 
     },
+    input: {
+        marginTop: 10,
+        borderWidth: 1,
+        width: '50%',
+        alignSelf: 'center',
+        borderColor: '#ccc',
+        padding: 10,
+        marginBottom: 10
+    },
     button: {
         borderRadius: 10,
         padding: 10,
@@ -293,25 +312,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center'
     },
-    bottomNavigation: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginTop: 20,
-        backgroundColor: '#A8D5BA',
-        padding: 16
-    },
-    buttonContainer: {
-        marginVertical: 10,
-        borderRadius: 10,
-        backgroundColor: '#A8D5BA',
-        borderColor: '#fff',
-        borderWidth: 3,
-        padding: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '10%',
-        alignSelf: 'center'
-    },
     plusButtonStyle: {
         width: 50,
         height: 50,
@@ -322,6 +322,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         margin: 10
+    },
+    bottomNavigation: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginTop: 20,
+        backgroundColor: '#A8D5BA',
+        padding: 16,
+        paddingBottom: 48,
     }
 });
 

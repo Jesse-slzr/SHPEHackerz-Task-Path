@@ -11,8 +11,7 @@ export default function RootLayout() {
 	const segments = useSegments();
 
 	useEffect(() => {
-		const unsubscribe = onAuthStateChanged(FIREBASE_AUTH, (currentUser: User | null) => {
-			console.log('onAuthStateChanged', currentUser);
+		const unsubscribe = onAuthStateChanged(FIREBASE_AUTH(), (currentUser: User | null) => {
 			setUser(currentUser);
 			if (initializing) setInitializing(false);
 		});
@@ -52,6 +51,7 @@ export default function RootLayout() {
         <Stack>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
 			<Stack.Screen name="screens/dashboardScreens" options={{ headerShown: false }} />
+            <Stack.Screen name="screens/kidsViewScreens" options={{ headerShown: false }} />
         </Stack>
         );
 }

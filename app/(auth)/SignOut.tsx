@@ -1,7 +1,12 @@
-import { View, Text, Button, StyleSheet, TouchableOpacity } from 'react-native';
+import {
+    View, 
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+} from 'react-native';
 import { useEffect, useState } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
-import { FIREBASE_AUTH } from '../../FirebaseConfig'; // Make sure this imports your auth instance
+import { FIREBASE_AUTH } from '../../FirebaseConfig';
 import { useRouter } from 'expo-router';
 import { ColorProperties } from 'react-native-reanimated/lib/typescript/reanimated2/Colors';
 
@@ -9,16 +14,18 @@ const Page = () => {
 	const [user, setUser] = useState<User | null>(null);
     const router = useRouter();
 
+    // Check if the user is logged in
 	useEffect(() => {
-		const unsubscribe = onAuthStateChanged(FIREBASE_AUTH, (currentUser: User | null) => {
+		const unsubscribe = onAuthStateChanged(FIREBASE_AUTH(), (currentUser: User | null) => {
 			setUser(currentUser);
 		});
 
 		return () => unsubscribe();
 	}, []);
 
+    // Handle sign out
     const handleSignOut = () => {
-        FIREBASE_AUTH.signOut().then(() => {
+        FIREBASE_AUTH().signOut().then(() => {
             router.replace('/(auth)/Login');
         }).catch((error) => {
             console.error('Error signing out:', error);
@@ -40,15 +47,13 @@ const Page = () => {
 	);
 };
 
-export default Page;
-
 const styles = StyleSheet.create({
     mainText: {
         fontSize: 18,
         fontWeight: 'bold',
         textAlign: 'center',
         marginBottom: 20,
-        marginTop: 20
+        marginTop: 70
     },
     buttonContainer: {
         marginVertical: 10,
@@ -63,3 +68,5 @@ const styles = StyleSheet.create({
         alignSelf: 'center'
     }
 });
+
+export default Page;
