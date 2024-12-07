@@ -10,7 +10,7 @@ import {
     StyleSheet,
 } from 'react-native'
 import { FIREBASE_AUTH } from '../../FirebaseConfig';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, RecaptchaVerifier } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword} from 'firebase/auth';
 import { signInWithPhoneNumber as firebaseSignInWithPhoneNumber } from 'firebase/auth';
 import { useState } from 'react';
 import { FirebaseError } from 'firebase/app';
