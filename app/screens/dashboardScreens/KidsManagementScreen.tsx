@@ -1,6 +1,6 @@
 // KidScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
+import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal,Alert,  KeyboardAvoidingView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { FontAwesome } from '@expo/vector-icons';
 import { faTasks, faChild, faGift, faHouse, faPlus } from '@fortawesome/free-solid-svg-icons';
@@ -33,6 +33,20 @@ const KidScreen = () => {
     }, []);
 
     const addKidToFirestore = async () => {
+        console.log("Attempting to add kid..."); // Debug log
+        if (kids.length >= 10) { // Check if the number of kids is already 10
+            console.log("Maximum number of kids reached."); // Debug log
+            Alert.alert("Sorry!", "The maximum number of children allowed is 10!"); // Display alert message
+            return;
+        }
+        
+        const age = parseFloat(kidAge);
+        if (age > 100) { // Check if the age is greater than 100
+            console.log("Age exceeds limit."); // Debug log
+            Alert.alert("Invalid Age", "Number exceeds Age Limit!"); // Display alert message
+            return;
+        }
+
         try {
             const kidId = uuid.v4() // Generate unique ID
             const newKid = {
