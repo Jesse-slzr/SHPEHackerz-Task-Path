@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../FirebaseConfig';
-import { collection, getDocs, onSnapshot, query } from 'firebase/firestore';
+import { collection, getDocs, onSnapshot, query, Timestamp } from 'firebase/firestore';
 import { 
     View, 
     Text, 
@@ -16,6 +16,7 @@ import { faGear, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-ic
 import { Dropdown } from 'react-native-element-dropdown';
 import { BarChart } from 'react-native-chart-kit';
 import { useRouter } from 'expo-router';
+import uuid from 'react-native-uuid';
 
 interface Kid {
     kidId: string;
@@ -24,13 +25,43 @@ interface Kid {
     id: string;
 }
 
+// interface Task {
+//     taskId: string;
+//     date: string;
+//     taskName: string;
+//     taskStatus: string;
+//     rewardAMT: string;
+//     childId: string;
+// }
+
 interface Task {
+    docId: string;
     taskId: string;
+    name: string;
+    description: string;
+    cost: number;
+    completed: boolean;
     date: string;
+}
+
+interface TaskCompletion {
+    docId: string;
+    taskCompletionId: string;
+    kidId: string;
+    taskId: string;
+    dateCompleted: Date;
+}
+
+interface TaskCompletionData {
+    taskCompletionDataId: string;
+    kidId: string;
+    taskId: string;
     taskName: string;
-    taskStatus: string;
-    rewardAMT: string;
-    childId: string;
+    taskDescription: string;
+    taskCost: number;
+    taskCompleted: boolean;
+    dateCompleted: Date;
+    docId: string;
 }
   
 interface Week {
@@ -45,35 +76,39 @@ const DashboardScreen = () => {
     const [kids, setKids] = useState<Kid[]>([]);
     const [selectedKid, setSelectedKid] = useState<Kid | null>(null);
     const [selectedWeek, setSelectedWeek] = useState<Week>({ label: 'This Week', startOfWeek: new Date(), endOfWeek: new Date() });
-    const [recentTasks, setRecentTasks] = useState([
-        { taskId: '1', date: '2024-12-5', taskName: 'Task 1', taskStatus: 'Completed', rewardAMT: '5', childId: 'ce981757-81df-4e00-a756-cd3a4571bba1', childName: "Dustin" },
-        { taskId: '2', date: '2024-12-3', taskName: 'Task 2', taskStatus: 'Completed', rewardAMT: '5', childId: 'ce981757-81df-4e00-a756-cd3a4571bba1', childName: "Dustin" },
-        { taskId: '3', date: '2024-12-4', taskName: 'Task 3', taskStatus: 'In Progress', rewardAMT: '5', childId: 'ce981757-81df-4e00-a756-cd3a4571bba1', childName: "Dustin" },
-        { taskId: '4', date: '2024-12-2', taskName: 'Task 4', taskStatus: 'Completed', rewardAMT: '10', childId: '7f7b3912-77d6-4571-91bf-1cfd3ace57e8', childName: "Yaneli" },
-        { taskId: '5', date: '2024-12-7', taskName: 'Task 5', taskStatus: 'Completed', rewardAMT: '10', childId: 'ce981757-81df-4e00-a756-cd3a4571bba1', childName: "Dustin" },
-    ]);
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [taskCompletions, setTaskCompletions] = useState<TaskCompletion[]>([]);
+    const [taskCompletionData, setTaskCompletionData] = useState<TaskCompletionData[]>([]);
 
-    // Dynamically fetch kids data
     useEffect(() => {
-        const unsubscribe = fetchKids();
-    
+        const unsubscribeKids = fetchKids();
+        const unsubscribeTasks = fetchTasks();
+        const unsubscribeTaskCompletions = fetchTaskCompletions();
+
         return () => {
-            if (unsubscribe) unsubscribe();
+            unsubscribeKids && unsubscribeKids();
+            unsubscribeTasks && unsubscribeTasks();
+            unsubscribeTaskCompletions && unsubscribeTaskCompletions();
         };
     }, []);
 
-    // Default to the current week for the dropdown
+    useEffect(() => {
+        if (selectedKid && selectedWeek) {
+            fetchCompletedTasks();
+        }
+    }, [selectedKid, selectedWeek]);
+
     useEffect(() => {
         const currentDate = new Date();
         const startOfWeek = getStartOfWeek(currentDate);
         const endOfWeek = getEndOfWeek(currentDate);
-        const currentWeek = { 
-            label: `${formatDate(startOfWeek)} - ${formatDate(endOfWeek)}`, 
-            startOfWeek, 
-            endOfWeek 
-        };
-        setSelectedWeek(currentWeek); // Set the current week as default
+        setSelectedWeek({
+            label: `${formatDate(startOfWeek)} - ${formatDate(endOfWeek)}`,
+            startOfWeek,
+            endOfWeek,
+        });
     }, []);
+
 
     // Fetch kids data dynamically from Firebase
     const fetchKids = () => {
@@ -99,36 +134,101 @@ const DashboardScreen = () => {
         }
     };
 
+    const fetchTasks = () => {
+        try {
+            const tasksCollection = collection(FIRESTORE_DB, 'Tasks');
+            return onSnapshot(tasksCollection, (querySnapshot) => {
+                const fetchedTasks: Task[] = querySnapshot.docs.map((doc) => ({
+                    taskId: doc.data().taskId,
+                    ...doc.data(),
+                    docId: doc.id
+                } as Task));
+                setTasks(fetchedTasks);
+            });
+        } catch (error) {
+            console.error('Error fetching tasks:', error);
+        }
+    };
+
+    const fetchTaskCompletions = () => {
+        try {
+            const taskCompletionsCollection = collection(FIRESTORE_DB, 'TaskCompletions');
+            return onSnapshot(taskCompletionsCollection, (querySnapshot) => {
+                const fetchedTaskCompletions: TaskCompletion[] = querySnapshot.docs.map((doc) => {
+                    const data = doc.data();
+                    return {
+                        taskCompletionId: data.taskCompletionId,
+                        ...data,
+                        dateCompleted: data.dateCompleted.toDate(), // Convert Firestore Timestamp to Date
+                        docId: doc.id
+                    } as TaskCompletion;
+                });
+                setTaskCompletions(fetchedTaskCompletions);
+            });
+        } catch (error) {
+            console.error('Error fetching task completions:', error);
+        }
+    };
+    
+
+    // Helper to fetch completed tasks for the selected kid and week
+    const fetchCompletedTasks = () => {
+        const filteredCompletions = taskCompletions.filter(
+            (completion) => {
+                const completionDate = normalizeDate(completion.dateCompleted);
+                return (
+                    completion.kidId === selectedKid?.kidId &&
+                    completionDate >= normalizeDate(selectedWeek.startOfWeek) &&
+                    completionDate <= normalizeDate(selectedWeek.endOfWeek)
+                );
+            }
+        );
+
+        const enrichedData = filteredCompletions.map((completion) => {
+            const task = tasks.find((t) => t.taskId === completion.taskId);
+            return {
+                taskCompletionDataId: uuid.v4(), // Generate a unique ID
+                ...completion,
+                taskName: task?.name || '',
+                taskDescription: task?.description || '',
+                taskCost: task?.cost || 0,
+                taskCompleted: task?.completed || false,
+            };
+        });
+
+        setTaskCompletionData(enrichedData);
+    };
+
 
     // Helper functions to get start and 
     // end dates of a week and format them
-    const getStartOfWeek = (date: Date | null) => {
-        if(!date){    
-            var today = new Date();
-        }
-        else{
-            var today = new Date(date);
-        }
-        var start = today.getDate() - today.getDay();
-        return new Date(today.setDate(start));
+    const getStartOfWeek = (date: Date) => {
+        const dayOfWeek = date.getDay();
+        const diffToSunday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const startOfWeek = new Date(date);
+        startOfWeek.setDate(date.getDate() - diffToSunday);
+        startOfWeek.setHours(0, 0, 0, 0);
+        return startOfWeek;
+    };
+
+    const getEndOfWeek = (date: Date) => {
+        const startOfWeek = getStartOfWeek(date);
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
+        return endOfWeek;
     };
     
-    const getEndOfWeek = (date: Date | null) => {
-        if(!date){    
-            var today = new Date();
-        }
-        else{
-            var today = new Date(date);
-        }
-        var start = today.getDate() - today.getDay();
-        var startOfWeek = new Date(today.setDate(start));
-   
-        return new Date(startOfWeek.setDate(startOfWeek.getDate() + 6 ));
+    const normalizeDate = (date: Date) => {
+        const normalized = new Date(date);
+        normalized.setHours(0, 0, 0, 0);
+        return normalized;
     };
-    
+
     const formatDate = (date: Date) => {
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const day = (date.getDate() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const year = date.getFullYear();
         return `${month}/${day}`;
     };
     
@@ -136,29 +236,23 @@ const DashboardScreen = () => {
     const getAvailableWeeks = (): Week[] => {
         const weeks: Week[] = [];
         const uniqueWeeks = new Set<string>();
-        
-        // Add the current week first
-        const currentDate = new Date();
-        const startOfWeek = getStartOfWeek(currentDate);
-        const endOfWeek = getEndOfWeek(currentDate);
-        const label = `${formatDate(startOfWeek)} - ${formatDate(endOfWeek)}`;
 
-        if (!uniqueWeeks.has(label)) {
-            uniqueWeeks.add(label);
-            weeks.push({ label, startOfWeek, endOfWeek });
-        }
+        // Loop through each kid to find their task completion weeks
+        kids.forEach((kid) => {
+            const kidTaskCompletions = taskCompletions.filter((completion) => completion.kidId === kid.kidId);
 
-        // Add weeks from recent tasks
-        recentTasks.forEach((task) => {
-            const taskDate = new Date(task.date);
-            const startOfWeek = getStartOfWeek(taskDate);
-            const endOfWeek = getEndOfWeek(taskDate);
-            const label = `${formatDate(startOfWeek)} - ${formatDate(endOfWeek)}`;
+            kidTaskCompletions.forEach((task) => {
+                const taskDate = new Date(task.dateCompleted);
+                const startOfWeek = getStartOfWeek(taskDate);
+                const endOfWeek = getEndOfWeek(taskDate);
+                const label = `${formatDate(startOfWeek)} - ${formatDate(endOfWeek)}`;
 
-            if (!uniqueWeeks.has(label)) {
-                uniqueWeeks.add(label);
-                weeks.push({ label, startOfWeek, endOfWeek });
-            }
+                if (!uniqueWeeks.has(label)) {
+                    uniqueWeeks.add(label);
+                    weeks.push({ label, startOfWeek, endOfWeek });
+                }
+            });
+            
         });
 
         // Sort weeks by their start dates
@@ -167,73 +261,44 @@ const DashboardScreen = () => {
         return weeks;
     };
 
-    // Helper function to set hours, minutes, seconds, and milliseconds to 0
-    const normalizeDate = (date: Date) => {
-        const normalized = new Date(date);
-        normalized.setHours(0, 0, 0, 0);
-        return normalized;
-    };
-
     // Function to get task data for each day of the week
     const getTaskDataForWeek = (): number[] => {
         if (!selectedKid || !selectedWeek) return Array(7).fill(0);
-    
-        const taskCountPerDay = Array(7).fill(0);
-        const normalizedStart = normalizeDate(selectedWeek.startOfWeek);
-        const normalizedEnd = normalizeDate(selectedWeek.endOfWeek);
 
-        const filteredTasks = recentTasks.filter((task) => {
-            const taskDate = normalizeDate(new Date(task.date));
-            return (
-                task.taskStatus === 'Completed' &&
-                task.childId === selectedKid.kidId &&
-                taskDate >= normalizedStart &&
-                taskDate <= normalizedEnd
-            );
+        const taskCountPerDay = Array(7).fill(0);
+        taskCompletionData.forEach((data) => {
+            const completionDate = normalizeDate(data.dateCompleted);
+            const dayIndex = (completionDate.getDay() + 6) % 7; // Adjust for Sunday start
+            if (completionDate >= normalizeDate(selectedWeek.startOfWeek) && completionDate <= normalizeDate(selectedWeek.endOfWeek)) {
+                taskCountPerDay[dayIndex]++;
+            }
         });
-    
-        filteredTasks.forEach((task) => {
-            const taskDate = new Date(task.date);
-            const dayIndex = taskDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-            taskCountPerDay[dayIndex] += 1;
-        });
-        
+
         return taskCountPerDay;
     };
-    
 
-    const weeks = getAvailableWeeks();
     const taskDataForWeek = getTaskDataForWeek();
-
-
-    // Get completed tasks sorted by date in descending order
-    const getSortedCompletedTasks = () => {
-        return recentTasks
-            .filter(task => task.taskStatus === 'Completed')
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort tasks by date (most recent first)
+    const barChartData = {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [
+            {
+                data: taskDataForWeek,
+                color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
+                strokeWidth: 2,
+            },
+        ],
     };
 
-    // Render each task in the recent tasks list
-    const renderTask = ({ item }: { item: Task }) => {
-        const taskKid = kids.find(kid => kid.kidId === item.childId);
-        
-        return (
-            <View style={styles.taskBubble}>
-                <View style={styles.taskDate}>
-                    <Text>{item.date}</Text>
-                </View>
-                <View style={styles.taskKidInfo}>
-                    {/* Show the kid's name if found, otherwise fallback to a generic message */}
-                    <Text style={styles.kidInfoText}>
-                        Completed by Kid {taskKid ? taskKid.name : 'Unknown'}
-                    </Text>
-                </View>
-                <View style={styles.taskName}>
-                    <Text style={styles.taskNameText}>{item.taskName}</Text>
-                </View>
+    const renderTask = ({ item }: { item: TaskCompletionData }) => (
+        <View style={styles.taskBubble}>
+            <View style={styles.taskDate}>
+            <Text>{item.dateCompleted.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</Text>
             </View>
-        );
-    };
+            <View style={styles.taskName}>
+                <Text style={styles.taskNameText}>{item.taskName}</Text>
+            </View>
+        </View>
+    );
 
     if (loading) {
         return (
@@ -303,22 +368,18 @@ const DashboardScreen = () => {
             {/* Section displaying tasks completed this week */}
             <View style={styles.graphSection}>
                 <View style={styles.taskSummary}>
-                    <Dropdown
+                <Dropdown
                         style={styles.dropdown}
-                        data={weeks.map((week) => ({ label: week.label, value: week, key: week.label }))}
+                        data={getAvailableWeeks()}
                         labelField="label"
-                        valueField="value"
-                        placeholder={selectedWeek?.label}
-                        value={selectedWeek?.label}
-                        onChange={(item) => setSelectedWeek(item.value)}
+                        valueField="label"
+                        value={selectedWeek.label}
+                        onChange={(item) => setSelectedWeek(item)}
                     />
                     <Text style={styles.taskSummaryCount}>{taskDataForWeek.reduce((sum, val) => sum + val, 0)} Tasks</Text>
                 </View>
                 <BarChart
-                    data={{
-                        labels: ['M', 'T', 'W', 'TH', 'F', 'S', 'S'],
-                        datasets: [{ data: taskDataForWeek }]
-                    }}
+                    data={barChartData}
                     width={Dimensions.get('window').width - 30}
                     height={170}
                     fromNumber={Math.max(...taskDataForWeek) > 4 ? Math.max(...taskDataForWeek) : 4 }
@@ -340,12 +401,12 @@ const DashboardScreen = () => {
             </View>
             
             {/* Recent tasks section */}
-            <Text style={styles.recentTasks}>Recent Tasks</Text>
+            <Text style={styles.recentTasks}>Completed Tasks</Text>
             <FlatList
-                data={getSortedCompletedTasks()}
+                data={taskCompletionData}
                 keyExtractor={(item) => item.taskId}
                 renderItem={renderTask}
-                ListEmptyComponent={<Text>No recent tasks.</Text>}
+                ListEmptyComponent={<Text style={styles.noCompletedTasks}>No completed tasks.</Text>}
             />
             
             {/* Bottom navigation with icons */}
@@ -494,6 +555,10 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginBottom: 10,
         paddingHorizontal: 16,
+    },
+    noCompletedTasks:{
+        padding: 10,
+        marginLeft: 10
     },
     taskBubble: {
         padding: 12,

@@ -15,7 +15,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faCircleUser } from '@fortawesome/free-solid-svg-icons';
 
 interface Kid {
-    id: string;
+    docId: string;
+    kidId: string;
     name: string;
     age: number;
     completed: boolean;
@@ -34,11 +35,10 @@ const KidsSelectionScreen = () => {
         try {
             const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Kids'));
             const fetchedKids = querySnapshot.docs.map((doc) => ({
-                id: doc.id,
-                name: doc.data().name,
-                age: doc.data().age,
-                completed: doc.data().completed,
-            }));
+                kidId: doc.data().kidId,
+                ...doc.data(),
+                docId: doc.id
+            } as Kid));
             setKids(fetchedKids);
         } catch (error) {
             console.error('Error fetching kids:', error);
@@ -52,7 +52,7 @@ const KidsSelectionScreen = () => {
             <Link
                 href={{
                     pathname: '/screens/kidsViewScreens/[id]', 
-                    params: { id: item.id, name: item.name },
+                    params: { id: item.kidId, name: item.name },
                 }}
                 style={styles.kidLink}
             >
@@ -86,7 +86,7 @@ const KidsSelectionScreen = () => {
             {/* Kid List Section */}
             <FlatList
                 data={kids}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item) => item.kidId || item.docId}
                 renderItem={renderKid}
                 contentContainerStyle={styles.kidList}
                 ListEmptyComponent={<Text style={styles.emptyText}>No kids found.</Text>}
