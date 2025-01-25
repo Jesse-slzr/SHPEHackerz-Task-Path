@@ -9,23 +9,53 @@ import {
     Text,
     StyleSheet,
 } from 'react-native'
-import { FIREBASE_AUTH } from '../../FirebaseConfig';
+import { FIREBASE_AUTH, FIREBASE_DB as FIRESTORE_DB } from '../../FirebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, addDoc, collection, } from 'firebase/firestore';
 import { useState } from 'react';
 import { FirebaseError } from 'firebase/app';
+import uuid from 'react-native-uuid';
+
+interface Parent {
+    docId: string;
+    parentId: string;
+    userUID: string;
+    email: string;
+}
 
 const Login = () => {
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [loading, setLoading] = useState(false);
     const auth = FIREBASE_AUTH;
+    const [parents, setParents] = useState<Parent[]>([]);
+
+    // Function to create a parent collection in Firestore
+    const createParentAccount = async (uid: string, email: string) => {
+        try {
+            const parentId = uuid.v4() // Generate unique ID
+            const newParent = {
+                parentId: parentId,
+                userUID: uid,
+                email: email,
+                createdAt: new Date(),
+            };
+            const docRef = await addDoc(collection(FIRESTORE_DB, 'Parents'), newParent);
+            setParents((prevParents) => [...prevParents, { ...newParent, docId: docRef.id }]);
+            console.log("New Parent added with ID: ", docRef.id);
+        } catch (error) {
+            console.error("Error adding document: ", error);
+        }
+    }
 
     // Function to handle sign up
 	const signUp = async () => {
 		setLoading(true);
 		try {
-			await createUserWithEmailAndPassword(auth(), email, password);
-			alert('Check your emails!');
+			const userCredential = await createUserWithEmailAndPassword(auth(), email, password);
+            const uid = userCredential.user.uid;
+            await createParentAccount(uid, email);
+			alert('Account created successfully!');
 		} catch (e: any) {
 			const err = e as FirebaseError;
 			alert('Registration failed: ' + err.message);

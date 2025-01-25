@@ -6,8 +6,9 @@ import { FontAwesome } from '@expo/vector-icons';
 import { faTasks, faChild, faGift, faHouse, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { useRouter } from 'expo-router';
 import { FIREBASE_DB as FIRESTORE_DB} from '../../../FirebaseConfig';
-import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { query, where, getDocs, collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import uuid from 'react-native-uuid';
+import { getAuth } from 'firebase/auth';
 
 interface Kid {
     docId: string;
@@ -15,6 +16,7 @@ interface Kid {
     name: string;
     age: number;
     coinCount: number;
+    parentUuid: string;
 }
 
 const KidScreen = () => {
@@ -34,12 +36,15 @@ const KidScreen = () => {
 
     const addKidToFirestore = async () => {
         try {
+            const auth = getAuth();
+            const parentUuid = auth.currentUser?.uid || '';
             const kidId = uuid.v4() // Generate unique ID
             const newKid = {
                 kidId: kidId,
                 name: kidName,
                 age: parseFloat(kidAge) || 0,
-                coinCount: 0
+                coinCount: 0,
+                parentUuid: parentUuid,
             };
             const docRef = await addDoc(collection(FIRESTORE_DB, 'Kids'), newKid);
             setKids((prevKids) => [...prevKids, { ...newKid, docId: docRef.id }]);
@@ -55,7 +60,9 @@ const KidScreen = () => {
 
     const fetchKids = async () => {
         try {
-            const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Kids'));
+            const auth = getAuth();
+            const parentUuid = auth.currentUser?.uid || '';
+            const querySnapshot = await getDocs(query(collection(FIRESTORE_DB, 'Kids'), where('parentUuid', '==', parentUuid)));
             const fetchedKids: Kid[] = querySnapshot.docs.map((doc) => ({
                 kidId: doc.data().kidId,
                 ...doc.data(),

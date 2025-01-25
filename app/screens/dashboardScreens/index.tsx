@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../FirebaseConfig';
-import { collection, getDocs, onSnapshot, query, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, onSnapshot, query, Timestamp, where } from 'firebase/firestore';
 import { 
     View, 
     Text, 
@@ -17,12 +17,14 @@ import { Dropdown } from 'react-native-element-dropdown';
 import { BarChart } from 'react-native-chart-kit';
 import { useRouter } from 'expo-router';
 import uuid from 'react-native-uuid';
+import { getAuth } from 'firebase/auth';
 
 interface Kid {
     kidId: string;
     name: string;
     age: number;
     id: string;
+    parentUuid: string;
 }
 
 // interface Task {
@@ -109,15 +111,18 @@ const DashboardScreen = () => {
         });
     }, []);
 
+    const auth = getAuth();
+    const parentUuid = auth.currentUser?.uid || '';
 
     // Fetch kids data dynamically from Firebase
     const fetchKids = () => {
         try {
             const kidsCollection = collection(FIRESTORE_DB, 'Kids');
-            const q = query(kidsCollection);
+            const q = query(kidsCollection, where('parentUuid', '==', parentUuid));
             const unsubscribe = onSnapshot(q, (querySnapshot) => {
                 const fetchedKids: Kid[] = querySnapshot.docs.map((doc) => ({
                     kidId: doc.data().kidId,
+                    parentUuid: doc.data().parentUuid,
                     ...doc.data(),
                     id: doc.id
                 } as Kid));
