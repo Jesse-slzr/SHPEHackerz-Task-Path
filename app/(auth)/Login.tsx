@@ -15,6 +15,7 @@ import { doc, addDoc, collection, } from 'firebase/firestore';
 import { useState } from 'react';
 import { FirebaseError } from 'firebase/app';
 import uuid from 'react-native-uuid';
+import { useRouter } from 'expo-router';
 
 interface Parent {
     docId: string;
@@ -29,6 +30,8 @@ const Login = () => {
 	const [loading, setLoading] = useState(false);
     const auth = FIREBASE_AUTH;
     const [parents, setParents] = useState<Parent[]>([]);
+    const [modalVisible, setModalVisible] = useState(false);
+    const router = useRouter(); 
 
     // Function to create a parent collection in Firestore
     const createParentAccount = async (uid: string, email: string) => {
@@ -76,6 +79,18 @@ const Login = () => {
 			setLoading(false);
 		}
 	};
+
+    // Function to navigate to Parent Dashboard
+    const navigateToParent = () => {
+        setModalVisible(false); // Close modal after selection
+        router.push('../screens/dashboardScreens');
+    };
+
+    // Function to navigate to Kids Dashboard
+    const navigateToKids = () => {
+        setModalVisible(false); // Close modal after selection
+        router.push('../screens/kidsViewScreens');
+    };
 
     if (loading) {
         return (

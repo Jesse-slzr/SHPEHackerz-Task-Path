@@ -9,10 +9,11 @@ import {
     StyleSheet,
 } from 'react-native';
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../FirebaseConfig';
-import { getDocs, collection } from 'firebase/firestore';
+import { getDocs, collection, query, where } from 'firebase/firestore';
 import { useRouter, Link } from 'expo-router';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faCircleUser } from '@fortawesome/free-solid-svg-icons';
+import { getAuth } from 'firebase/auth';
 
 interface Kid {
     docId: string;
@@ -31,19 +32,38 @@ const KidsSelectionScreen = () => {
         fetchKids();
     }, []);
 
+    // const fetchKids = async () => {
+    //     try {
+    //         const auth = getAuth();
+    //         const parentUuid = auth.currentUser?.uid || '';
+    //         const querySnapshot = await getDocs(query(collection(FIRESTORE_DB, 'Kids'), where('parentUuid', '==', parentUuid)));
+    //         const fetchedKids: Kid[] = querySnapshot.docs.map((doc) => ({
+    //             kidId: doc.data().kidId,
+    //             ...doc.data(),
+    //             docId: doc.id
+    //         } as Kid));
+    //         setKids(fetchedKids);
+    //     } catch (error) {
+    //         console.error('Error fetching kids:', error);
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
+
     const fetchKids = async () => {
         try {
-            const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Kids'));
-            const fetchedKids = querySnapshot.docs.map((doc) => ({
+            const auth = getAuth();
+            const parentUuid = auth.currentUser?.uid || '';
+            const querySnapshot = await getDocs(query(collection(FIRESTORE_DB, 'Kids'), where('parentUuid', '==', parentUuid)));
+            const fetchedKids: Kid[] = querySnapshot.docs.map((doc) => ({
                 kidId: doc.data().kidId,
                 ...doc.data(),
                 docId: doc.id
             } as Kid));
             setKids(fetchedKids);
-        } catch (error) {
-            console.error('Error fetching kids:', error);
-        } finally {
             setLoading(false);
+        } catch (error) {
+            console.error('Error fetching Kids:', error);
         }
     };
 
