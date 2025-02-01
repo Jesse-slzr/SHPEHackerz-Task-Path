@@ -8,6 +8,7 @@ import {
     Pressable,
     Text,
     StyleSheet,
+    Switch
 } from 'react-native'
 import { FIREBASE_AUTH, FIREBASE_DB as FIRESTORE_DB } from '../../FirebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
@@ -27,6 +28,7 @@ interface Parent {
 const Login = () => {
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
+    const [isParent, setIsParent] = useState(true); 
 	const [loading, setLoading] = useState(false);
     const auth = FIREBASE_AUTH;
     const [parents, setParents] = useState<Parent[]>([]);
@@ -72,25 +74,18 @@ const Login = () => {
 		setLoading(true);
 		try {
 			await signInWithEmailAndPassword(auth(), email, password);
-		} catch (e: any) {
+            if (isParent) {
+                router.replace('/screens/dashboardScreens'); // Navigate to Parent Dashboard
+            } else {
+                router.replace('/screens/kidsViewScreens'); // Navigate to Kids View
+            }
+        } catch (e: any) {
 			const err = e as FirebaseError;
 			alert('Sign in failed: ' + err.message);
 		} finally {
 			setLoading(false);
 		}
 	};
-
-    // Function to navigate to Parent Dashboard
-    const navigateToParent = () => {
-        setModalVisible(false); // Close modal after selection
-        router.push('../screens/dashboardScreens');
-    };
-
-    // Function to navigate to Kids Dashboard
-    const navigateToKids = () => {
-        setModalVisible(false); // Close modal after selection
-        router.push('../screens/kidsViewScreens');
-    };
 
     if (loading) {
         return (
@@ -132,6 +127,17 @@ const Login = () => {
                         secureTextEntry
                         placeholder="Password"
                     />
+
+                    {/* Toggle Switch for Account Type */}
+                    <View style={styles.switchContainer}>
+                        <Text style={[styles.switchText, !isParent && styles.highlightText]}>Kids</Text>
+                        <Switch
+                            value={isParent}
+                            onValueChange={setIsParent}
+                            thumbColor="#fff"
+                        />
+                        <Text style={[styles.switchText, isParent && styles.highlightText]}>Parent</Text>
+                    </View>
                     
                     {/* Sign In Button */}
                     <Pressable
@@ -187,6 +193,20 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    switchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginVertical: 10,
+    },
+    switchText: {
+        fontSize: 16,
+        marginHorizontal: 10,
+    },
+    highlightText: {
+        fontWeight: 'bold',
+        color: '#000', // Highlight color (red for Kids, green for Parent)
     },
     buttonContainer: {
         marginVertical: 10,

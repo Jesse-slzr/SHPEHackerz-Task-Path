@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../FirebaseConfig';
 import { getDocs, collection, query, where } from 'firebase/firestore';
+import { faGear } from '@fortawesome/free-solid-svg-icons';
 import { useRouter, Link } from 'expo-router';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faCircleUser } from '@fortawesome/free-solid-svg-icons';
@@ -96,11 +97,14 @@ const KidsSelectionScreen = () => {
     return (
         <View style={styles.container}>
             {/* Exit Button Section */}
-            <Pressable
+            {/* <Pressable
                 style={styles.exitButton}
                 onPress={() => router.push({pathname:'/screens/dashboardScreens'})}
             >
                 <Text style={styles.exitButtonText}>Exit Kids View</Text>
+            </Pressable> */}
+            <Pressable onPress={() => router.push('/(auth)/SignOutKids')} hitSlop={{ top: 40, bottom: 40, left: 40, right: 40 }} style={styles.headerButton}>
+                <FontAwesomeIcon icon={faGear} size={24} color="black" />
             </Pressable>
 
             {/* Kid List Section */}
@@ -120,6 +124,10 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#A8D5BA',
         padding: 16,
+    },
+    headerButton: {
+        padding: 10,
+        paddingTop: 40,
     },
     exitButton: {
         alignSelf: 'flex-end',

@@ -12,7 +12,7 @@ import {
     StyleSheet 
 } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faGear, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-icons'; // Import specific icons
+import { faGear, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-icons';
 import { Dropdown } from 'react-native-element-dropdown';
 import { BarChart } from 'react-native-chart-kit';
 import { useRouter } from 'expo-router';

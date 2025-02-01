@@ -23,7 +23,7 @@ export default function RootLayout() {
 		if (initializing) return;
 
 		const inAuthGroup = segments[0] === '(auth)';
-        const isHomeScreen = segments[1] === 'SignOut';
+        const isHomeScreen = ( segments[1] === 'SignOut' || segments[1] === 'SignOutKids' );
 
 		if (user && inAuthGroup && !isHomeScreen) {
             console.log('Redirecting to /dashboardScreens');
