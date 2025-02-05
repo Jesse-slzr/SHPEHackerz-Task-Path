@@ -12,17 +12,19 @@ import {
 } from 'react-native'
 import { FIREBASE_AUTH, FIREBASE_DB as FIRESTORE_DB } from '../../FirebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, addDoc, collection, } from 'firebase/firestore';
+import {addDoc, collection, } from 'firebase/firestore';
 import { useState } from 'react';
 import { FirebaseError } from 'firebase/app';
 import uuid from 'react-native-uuid';
 import { useRouter } from 'expo-router';
+import { updateUserTypeToKid, updateUserTypeToParent } from "../../utils/firebaseUtils";
 
 interface Parent {
     docId: string;
     parentId: string;
     userUID: string;
     email: string;
+    userType: 'parent' | 'kid;'
 }
 
 const Login = () => {
@@ -32,7 +34,6 @@ const Login = () => {
 	const [loading, setLoading] = useState(false);
     const auth = FIREBASE_AUTH;
     const [parents, setParents] = useState<Parent[]>([]);
-    const [modalVisible, setModalVisible] = useState(false);
     const router = useRouter(); 
 
     // Function to create a parent collection in Firestore
@@ -44,9 +45,11 @@ const Login = () => {
                 userUID: uid,
                 email: email,
                 createdAt: new Date(),
+                userType: 'parent'
             };
             const docRef = await addDoc(collection(FIRESTORE_DB, 'Parents'), newParent);
-            setParents((prevParents) => [...prevParents, { ...newParent, docId: docRef.id }]);
+            setParents((prevParents) => [...prevParents, { ...newParent, docId: docRef.id, userType: 'parent' }]);
+            const userType = await updateUserTypeToParent();
             console.log("New Parent added with ID: ", docRef.id);
         } catch (error) {
             console.error("Error adding document: ", error);
@@ -60,6 +63,7 @@ const Login = () => {
 			const userCredential = await createUserWithEmailAndPassword(auth(), email, password);
             const uid = userCredential.user.uid;
             await createParentAccount(uid, email);
+            await updateUserTypeToParent();
 			alert('Account created successfully!');
 		} catch (e: any) {
 			const err = e as FirebaseError;
@@ -76,8 +80,10 @@ const Login = () => {
 			await signInWithEmailAndPassword(auth(), email, password);
             if (isParent) {
                 router.replace('/screens/dashboardScreens'); // Navigate to Parent Dashboard
+                await updateUserTypeToParent();
             } else {
                 router.replace('/screens/kidsViewScreens'); // Navigate to Kids View
+                await updateUserTypeToKid();
             }
         } catch (e: any) {
 			const err = e as FirebaseError;
@@ -91,7 +97,7 @@ const Login = () => {
         return (
         <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#0000ff" />
-            <Text>Loading Tasks...</Text>
+            <Text>Loading...</Text>
         </View>
         );
     }
