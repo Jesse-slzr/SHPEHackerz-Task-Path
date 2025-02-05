@@ -18,7 +18,7 @@ import { BarChart } from 'react-native-chart-kit';
 import { useRouter } from 'expo-router';
 import uuid from 'react-native-uuid';
 import { getAuth } from 'firebase/auth';
-import { updateUserTypeToKid, updateUserTypeToParent } from "../../../utils/firebaseUtils";
+import { updateUserTypeToKid } from "../../../utils/firebaseUtils";
 
 interface Kid {
     kidId: string;
@@ -113,41 +113,6 @@ const DashboardScreen = () => {
         router.push("../../screens/kidsViewScreens");
     };
     
-    const handleParentView = async () => {
-        const userType = await updateUserTypeToParent();
-        // router.push("../../screens/dashboardScreens");
-        
-    };
-    // const updateUserTypeToKid = async () => {
-    //     try {
-    //         const user = getAuth().currentUser;
-    //         if (!user) {
-    //             alert("No authenticated user found.");
-    //             return;
-    //         }
-    
-    //         // Query Firestore to find the user's document
-    //         const q = query(collection(FIRESTORE_DB, "Parents"), where("userUID", "==", user.uid));
-    //         const querySnapshot = await getDocs(q);
-    
-    //         if (!querySnapshot.empty) {
-    //             const userDoc = querySnapshot.docs[0]; // Assuming only one user document per UID
-    //             await updateDoc(doc(FIRESTORE_DB, "Parents", userDoc.id), {
-    //                 userType: "kid",
-    //             });
-    
-    //             console.log("User type updated to kid");
-    //             router.push("../../../screens/kidsViewScreens"); // Navigate to Kids View
-    //         } else {
-    //             alert("User document not found.");
-    //         }
-    //     } catch (error) {
-    //         console.error("Error updating userType: ", error);
-    //         alert("Failed to update user type.");
-    //     }
-    // };
-    
-
     // Fetch kids from Firestore based on the logged-in parent's ID
     const auth = getAuth();
     const parentUuid = auth.currentUser?.uid || '';
