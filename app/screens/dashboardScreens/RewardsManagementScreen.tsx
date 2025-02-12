@@ -103,6 +103,9 @@ const RewardScreen = () => {
     const renderReward = ({ item }: { item: Reward}) => (
         <Pressable style={styles.rewardItem} onPress={() => openRewardModal(item)}>
             <Text>{item.name}</Text>
+            <Pressable onPress={() => deleteReward(item)}>
+                <FontAwesome name="trash" size={20} color="red" />
+            </Pressable>
         </Pressable>
     );
 
@@ -148,21 +151,44 @@ const RewardScreen = () => {
                 keyExtractor={(item) => item.rewardId || item.docId}
                 renderItem={renderReward}
             />
-            
+
+            {/* Edit Reward Modal */}
             <Modal
-                animationType="slide"
+                animationType="fade"
                 transparent={true}
                 visible={modalVisible}
                 onRequestClose={() => setModalVisible(false)}>
-                <View style={styles.centeredView}>
+                <View style={styles.overlay}>
                     <View style={styles.modalView}>
-                        <Text style={{ marginBottom: 5, textAlign: 'center' }}>Reward Name:</Text>
-                        <TextInput style={styles.input} placeholder="Edit Reward name" placeholderTextColor="#333" value={selectedReward ? selectedReward.name : ''} onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, name: text }) as Reward | null)}/>
-                        <Text>Reward Description:</Text>
-                        <TextInput style={styles.input} value={selectedReward ? selectedReward.description : ''} onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, description: text }) as Reward | null)} />
+                        <Pressable onPress={() => setModalVisible(false)} style={styles.closeXButton}>
+                            <FontAwesome name="close" size={24} color="black" />
+                        </Pressable>
 
-                        <Text>Reward Cost:</Text>
-                        <TextInput style={styles.input} keyboardType="numeric" value={selectedReward ? String(selectedReward.cost) : ''} onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, cost: parseFloat(text) }) as Reward | null)} />
+                        <Text style={styles.modalTitle}>Edit Reward</Text>
+                        
+                        <Text style={styles.modalSubTitle}>Name:</Text>
+                        <TextInput 
+                            style={styles.input}
+                            placeholder="Edit Reward name"
+                            placeholderTextColor="#333"
+                            value={selectedReward ? selectedReward.name : ''}
+                            onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, name: text }) as Reward | null)}
+                        />
+
+                        <Text style={styles.modalSubTitle}>Description:</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={selectedReward ? selectedReward.description : ''}
+                            onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, description: text }) as Reward | null)}
+                        />
+
+                        <Text style={styles.modalSubTitle}>Cost:</Text>
+                        <TextInput 
+                            style={styles.input} 
+                            keyboardType="numeric"
+                            value={selectedReward ? String(selectedReward.cost) : ''}
+                            onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, cost: parseFloat(text) }) as Reward | null)}
+                        />
 
                         <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
                             <Text style={styles.textStyle}>Save</Text>
@@ -183,17 +209,39 @@ const RewardScreen = () => {
 
             {/* Create Reward Modal */}
             <Modal
-                animationType="slide"
+                animationType="fade"
                 transparent={true}
                 visible={createRewardModalVisible}
                 onRequestClose={() => setCreateRewardModalVisible(false)}
             >
-                <View style={styles.centeredView}>
+                <View style={styles.overlay}>
                     <View style={styles.modalView}>
-                        <Text style={{ marginVertical: 5, textAlign: 'center', fontWeight: 'bold' }}>Create Reward</Text>
-                        <TextInput style={styles.input} placeholder="Reward Name" placeholderTextColor="#333" value={rewardName} onChangeText={setRewardName} />
-                        <TextInput style={styles.input} placeholder="Description" placeholderTextColor="#333" value={rewardDescription} onChangeText={setRewardDescription} />
-                        <TextInput style={styles.input} placeholder="Cost" placeholderTextColor="#333" keyboardType="numeric" value={rewardCost} onChangeText={setRewardCost} />
+                        <Pressable onPress={() => setCreateRewardModalVisible(false)} style={styles.closeXButton}>
+                            <FontAwesome name="close" size={24} color="black" />
+                        </Pressable>
+                        <Text style={styles.modalTitle}>Create Reward</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Reward Name"
+                            placeholderTextColor="#333"
+                            value={rewardName}
+                            onChangeText={setRewardName}
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Description"
+                            placeholderTextColor="#333"
+                            value={rewardDescription}
+                            onChangeText={setRewardDescription}
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Cost (# of Coins)"
+                            placeholderTextColor="#333"
+                            keyboardType="numeric"
+                            value={rewardCost}
+                            onChangeText={setRewardCost}
+                        />
                         <Pressable style={styles.plusButtonStyle} onPress={addRewardToFirestore}>
                             <FontAwesome name="plus" size={12} color="black" />
                         </Pressable>
@@ -237,7 +285,7 @@ const styles = StyleSheet.create({
         padding: 10
     },
     title: {
-        fontSize: 24,
+        fontSize: 36,
         fontWeight: 'bold',
         marginBottom: 20,
         alignSelf: 'center',
@@ -249,52 +297,81 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     rewardItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         borderRadius: 10,
         marginVertical: 5,
-        width: '50%',
+        width: '90%',
         alignSelf: 'center',
+        alignItems: 'center',
         backgroundColor: '#fff',
-        borderColor: '#000',
+        borderColor: '#A8D5BA',
         borderWidth: 1,
-        padding: 10
+        padding: 15,
+        borderBottomWidth: 10,
+        borderBottomColor: '#A8D5BA',
+        borderRightWidth: 5,
+        borderRightColor: '#A8D5BA',
     },
-    centeredView: {
+    rewardName: {
+        fontSize: 16,
+    },
+    overlay: {
         flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
     },
     modalView: {
-        margin: 20,
+        width: '85%',
         backgroundColor: 'white',
-        borderRadius: 20,
-        padding: 35,
+        borderRadius: 15,
+        padding: 20,
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5 
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 5,
+    },
+    closeXButton: {
+        position: 'absolute',
+        top: 15,
+        right: 15,
+        padding: 5,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 15,
+    },
+    modalSubTitle: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        marginTop: 10,
+        marginBottom: 5
     },
     input: {
-        marginTop: 10,
+        width: '100%',
         borderWidth: 1,
-        width: '50%',
-        alignSelf: 'center',
-        borderColor: '#ccc',
-        padding: 10,
-        marginBottom: 10
-    },
-    button: {
+        borderColor: '#ddd',
         borderRadius: 10,
         padding: 10,
-        elevation: 2,
-        marginBottom: 20
+        marginBottom: 10,
+    },
+    button: {
+        width: '50%',
+        backgroundColor: '#007AFF',
+        padding: 12,
+        borderRadius: 10,
+        alignItems: 'center',
+        marginTop: 10,
     },
     buttonSave: {
         backgroundColor: '#2196F3' 
     },
     buttonDelete: {
-        backgroundColor: '#FF3E3E'
+        backgroundColor: '#FF3B30'
     },
     buttonClose: {
         backgroundColor: '#A8D5BA',
