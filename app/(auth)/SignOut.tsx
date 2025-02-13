@@ -3,6 +3,7 @@ import {
     Text,
     TouchableOpacity,
     StyleSheet,
+    Switch
 } from 'react-native';
 import { useEffect, useState } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
@@ -33,13 +34,23 @@ const Page = () => {
 
 	return (
 		<View>
-			<Text style={[styles.mainText]}>Logged in {user?.email}</Text>
+            <Text style={[styles.mainText]}>Logged in as {user?.email}</Text>
+            <TouchableOpacity style={[styles.buttonContainer]}>
+                <Text>Profile</Text>
+            </TouchableOpacity>
 			<TouchableOpacity onPress={handleSignOut} style={[styles.buttonContainer]}>
                 <Text>Sign out</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push('/screens/dashboardScreens')} style={styles.buttonContainer}>
                 <Text>Back to Dashboard</Text>
             </TouchableOpacity>
+            <View style={styles.switchContainer}>
+                <Text style={[styles.switchText]}>Light Mode</Text>
+                    <Switch
+                        thumbColor="#fff"
+                    />
+                <Text style={[styles.switchText]}>Dark Mode</Text>
+            </View>
 		</View>
 	);
 };
@@ -51,6 +62,20 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 20,
         marginTop: 70
+    },
+    switchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginVertical: 10,
+    },
+    switchText: {
+        fontSize: 16,
+        marginHorizontal: 10,
+    },
+    highlightText: {
+        fontWeight: 'bold',
+        color: '#000', // Highlight color (red for Kids, green for Parent)
     },
     buttonContainer: {
         marginVertical: 10,
