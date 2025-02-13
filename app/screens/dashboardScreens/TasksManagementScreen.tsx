@@ -43,10 +43,10 @@ const TaskScreen = () => {
                 taskId: taskId,
                 name: taskName,
                 description: taskDescription,
-                cost: parseFloat(taskCost),
+                cost: parseFloat(taskCost) || 0,
                 completed: false,
                 childId: "",
-                duration: parseFloat(taskDuration),
+                duration: parseFloat(taskDuration) || 0,
             };
             const docRef = await addDoc(collection(FIRESTORE_DB, 'Tasks'), newTask);
             setTasks((prevTasks) => [...prevTasks, { ...newTask, docId: docRef.id }]);
@@ -79,9 +79,16 @@ const TaskScreen = () => {
     const updateTask = async (task: Task,taskId: string, updatedName: string, updatedDescription: string, updatedCost: string, updatedDuration: string) => {
         try {
             const taskRef = doc(FIRESTORE_DB, 'Tasks', task.docId);
-            await updateDoc(taskRef, { name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost), duration: parseFloat(updatedDuration) });
+            await updateDoc(taskRef, {
+                name: updatedName,
+                description: updatedDescription,
+                cost: parseFloat(updatedCost) || 0,
+                duration: parseFloat(updatedDuration) || 0
+            });
             setTasks((prevTasks) => prevTasks.map((task) => 
-                task.taskId === taskId ? { ...task, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost), duration: parseFloat(updatedDuration) } : task
+                task.taskId === taskId 
+                    ? { ...task, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost), duration: parseFloat(updatedDuration) } 
+                    : task
             ));
             setModalVisible(false);
             setSelectedTask(null);

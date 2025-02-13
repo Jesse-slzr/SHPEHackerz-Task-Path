@@ -155,6 +155,7 @@ const KidScreen = () => {
                 renderItem={renderKid}
             />
             
+            {/* Edit Kid Modal */}
             <Modal
                 animationType="fade"
                 transparent={true}

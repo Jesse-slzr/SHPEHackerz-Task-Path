@@ -41,7 +41,7 @@ const RewardScreen = () => {
                 rewardId: rewardId,
                 name: rewardName,
                 description: rewardDescription,
-                cost: parseFloat(rewardCost),
+                cost: parseFloat(rewardCost) || 0,
                 claimed: false,
                 childId: ""
             };
@@ -74,9 +74,15 @@ const RewardScreen = () => {
     const updateReward = async (reward: Reward,rewardId: string, updatedName: string, updatedDescription: string, updatedCost: string) => {
         try {
             const rewardRef = doc(FIRESTORE_DB, 'Rewards', reward.docId);
-            await updateDoc(rewardRef, { name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) });
+            await updateDoc(rewardRef, {
+                name: updatedName,
+                description: updatedDescription,
+                cost: parseFloat(updatedCost) || 0
+            });
             setRewards((prevRewards) => prevRewards.map((reward) => 
-                reward.rewardId === rewardId ? { ...reward, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) } : reward
+                reward.rewardId === rewardId
+                    ? { ...reward, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) }
+                    : reward
             ));
             setModalVisible(false);
             setSelectedReward(null);
