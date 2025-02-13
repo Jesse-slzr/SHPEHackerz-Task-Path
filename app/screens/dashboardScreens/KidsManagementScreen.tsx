@@ -1,4 +1,5 @@
 // KidScreen.tsx
+// KidScreen.tsx
 import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
@@ -9,6 +10,7 @@ import { FIREBASE_DB as FIRESTORE_DB} from '../../../FirebaseConfig';
 import { query, where, getDocs, collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import uuid from 'react-native-uuid';
 import { getAuth } from 'firebase/auth';
+import {Swipeable, GestureHandlerRootView} from 'react-native-gesture-handler';
 
 interface Kid {
     docId: string;
@@ -104,14 +106,22 @@ const KidScreen = () => {
         }
     };
 
-    const renderKid = ({ item }: { item: Kid}) => (
-        <Pressable style={styles.kidItem} onPress={() => openKidModal(item)}>
-            <Text style={styles.kidName}>{item.name}</Text>
-            <Pressable onPress={() => deleteKid(item)}>
-                <FontAwesome name="trash" size={20} color="red" />
+    const renderKid = ({ item }: { item: Kid }) => {
+        const renderRightActions = () => (
+            <Pressable style={styles.deleteButton} onPress={() => deleteKid(item)}>
+                <FontAwesome name="trash" size={20} color="white" />
+                <Text style={styles.deleteText}>Delete</Text>
             </Pressable>
-        </Pressable>
-    );
+        );
+    
+        return (
+            <Swipeable renderRightActions={renderRightActions}>
+                <Pressable style={styles.kidItem} onPress={() => openKidModal(item)}>
+                    <Text style={styles.kidName}>{item.name}</Text>
+                </Pressable>
+            </Swipeable>
+        );
+    };
 
     const openKidModal = (kid: Kid) => {
         setSelectedKid(kid);
@@ -140,6 +150,7 @@ const KidScreen = () => {
     }
 
     return (
+        <GestureHandlerRootView style={styles.container}>
         <KeyboardAvoidingView behavior="padding" style={styles.container}>
             {/* Header with settings and navigation to kids view */}
             <View style={styles.header}>
@@ -155,7 +166,6 @@ const KidScreen = () => {
                 renderItem={renderKid}
             />
             
-            {/* Edit Kid Modal */}
             <Modal
                 animationType="fade"
                 transparent={true}
@@ -258,6 +268,7 @@ const KidScreen = () => {
                 </Pressable>
             </View>
         </KeyboardAvoidingView>
+        </GestureHandlerRootView>
     );
 };
 
@@ -394,7 +405,21 @@ const styles = StyleSheet.create({
         backgroundColor: '#A8D5BA',
         padding: 16,
         paddingBottom: 48,
-    }
+    },
+
+    deleteButton: {  
+        backgroundColor: '#FF3B30',
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: 80,
+        height: '100%', 
+    },
+    deleteText: { 
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    
 });
 
 export default KidScreen;
