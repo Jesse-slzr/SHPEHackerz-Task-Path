@@ -3,6 +3,7 @@ import {
     Text,
     TouchableOpacity,
     StyleSheet,
+    Image,
     Switch
 } from 'react-native';
 import { useEffect, useState } from 'react';
@@ -34,6 +35,10 @@ const Page = () => {
 
 	return (
 		<View>
+            <Image
+                source={require('@/assets/images/blank-pfp.png')}
+                style={styles.profileImage}
+            />
             <Text style={[styles.mainText]}>Logged in as {user?.email}</Text>
             <TouchableOpacity style={[styles.buttonContainer]}>
                 <Text>Profile</Text>
@@ -61,6 +66,16 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
         marginBottom: 20,
+        marginTop: 30
+    },
+    profileImage: {
+        height: 130,
+        width: 130,
+        borderRadius: 65,
+        overflow: 'hidden',
+        justifyContent: 'center',
+        alignItems: 'center',
+        alignSelf: 'center',
         marginTop: 70
     },
     switchContainer: {
@@ -78,15 +93,18 @@ const styles = StyleSheet.create({
         color: '#000', // Highlight color (red for Kids, green for Parent)
     },
     buttonContainer: {
+        flexDirection: 'row',
         marginVertical: 10,
         borderRadius: 10,
-        backgroundColor: '#A8D5BA',
-        borderColor: '#fff',
-        borderWidth: 3,
-        padding: 10,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        padding: 15,
+        borderColor: '#A8D5BA',
+        borderBottomWidth: 10,
+        borderRightWidth: 5,
         alignItems: 'center',
-        justifyContent: 'center',
-        width: '50%',
+        justifyContent: 'space-between',
+        width: '70%',
         alignSelf: 'center'
     }
 });
