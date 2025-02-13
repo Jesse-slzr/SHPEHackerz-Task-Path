@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { FontAwesome } from '@expo/vector-icons';
-import { faTasks, faChild, faGift, faHouse, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faTasks, faChild, faGift, faHouse, faPlus} from '@fortawesome/free-solid-svg-icons';
 import { useRouter } from 'expo-router';
 import { FIREBASE_DB as FIRESTORE_DB} from '../../../FirebaseConfig';
 import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
@@ -17,12 +17,14 @@ interface Task {
     cost: number;
     completed: boolean;
     childId: string;
+    duration: number;
 }
 
 const TaskScreen = () => {
     const [taskName, setTaskName] = useState('');
     const [taskDescription, setTaskDescription] = useState('');
     const [taskCost, setTaskCost] = useState('');
+    const [taskDuration, setTaskDuration] = useState('');
     const [tasks, setTasks] = useState<Task[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [createTaskModalVisible, setCreateTaskModalVisible] = useState(false);
@@ -41,15 +43,17 @@ const TaskScreen = () => {
                 taskId: taskId,
                 name: taskName,
                 description: taskDescription,
-                cost: parseFloat(taskCost),
+                cost: parseFloat(taskCost) || 0,
                 completed: false,
-                childId: ""
+                childId: "",
+                duration: parseFloat(taskDuration) || 0,
             };
             const docRef = await addDoc(collection(FIRESTORE_DB, 'Tasks'), newTask);
             setTasks((prevTasks) => [...prevTasks, { ...newTask, docId: docRef.id }]);
             setTaskName('');
             setTaskDescription('');
             setTaskCost('');
+            setTaskDuration('');
             setCreateTaskModalVisible(false);   
         } catch (error) {
             console.error("Error adding document: ", error);
@@ -62,6 +66,7 @@ const TaskScreen = () => {
             const fetchedTasks: Task[] = querySnapshot.docs.map((doc) => ({
                 taskId: doc.data().taskId,
                 ...doc.data(),
+                duration: doc.data().duration || 0,
                 docId: doc.id
             } as Task));
             setTasks(fetchedTasks);
@@ -71,18 +76,26 @@ const TaskScreen = () => {
         }
     };
 
-    const updateTask = async (task: Task,taskId: string, updatedName: string, updatedDescription: string, updatedCost: string) => {
+    const updateTask = async (task: Task,taskId: string, updatedName: string, updatedDescription: string, updatedCost: string, updatedDuration: string) => {
         try {
             const taskRef = doc(FIRESTORE_DB, 'Tasks', task.docId);
-            await updateDoc(taskRef, { name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) });
+            await updateDoc(taskRef, {
+                name: updatedName,
+                description: updatedDescription,
+                cost: parseFloat(updatedCost) || 0,
+                duration: parseFloat(updatedDuration) || 0
+            });
             setTasks((prevTasks) => prevTasks.map((task) => 
-                task.taskId === taskId ? { ...task, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) } : task
+                task.taskId === taskId 
+                    ? { ...task, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost), duration: parseFloat(updatedDuration) } 
+                    : task
             ));
             setModalVisible(false);
             setSelectedTask(null);
             setTaskName('');
             setTaskDescription('');
             setTaskCost('');
+            setTaskDuration('');
         } catch (error) {
             console.error("Error updating document: ", error);
         }
@@ -102,7 +115,10 @@ const TaskScreen = () => {
 
     const renderTask = ({ item }: { item: Task}) => (
         <Pressable style={styles.taskItem} onPress={() => openTaskModal(item)}>
-            <Text>{item.name}</Text>
+            <Text style={styles.taskName}>{item.name}</Text>
+            <Pressable onPress={() => deleteTask(item)}>
+                <FontAwesome name="trash" size={20} color="red" />
+            </Pressable>
         </Pressable>
     );
 
@@ -113,7 +129,7 @@ const TaskScreen = () => {
 
     const handleSave = () => {
         if (selectedTask) {
-            updateTask(selectedTask,selectedTask.taskId, selectedTask.name, selectedTask.description, selectedTask.cost.toString());
+            updateTask(selectedTask,selectedTask.taskId, selectedTask.name, selectedTask.description, selectedTask.cost.toString(), selectedTask.duration.toString());
         }
     };
 
@@ -149,26 +165,49 @@ const TaskScreen = () => {
                 renderItem={renderTask}
             />
             
+            {/* Edit Task Modal */}
             <Modal
-                animationType="slide"
+                animationType="fade"
                 transparent={true}
                 visible={modalVisible}
                 onRequestClose={() => setModalVisible(false)}>
-                <View style={styles.centeredView}>
+                <View style={styles.overlay}>
                     <View style={styles.modalView}>
-                        <Text style={{ marginBottom: 5, textAlign: 'center' }}>Task Name:</Text>
-                        <TextInput style={styles.input} placeholder="Edit task name" placeholderTextColor="#333" value={selectedTask ? selectedTask.name : ''} onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, name: text }) as Task | null)}/>
-                        <Text>Task Description:</Text>
-                        <TextInput style={styles.input} value={selectedTask ? selectedTask.description : ''} onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, description: text }) as Task | null)} />
-
-                        <Text>Task Cost:</Text>
+                        <Pressable onPress={() => setModalVisible(false)} style={styles.closeXButton}>
+                            <FontAwesome name="close" size={24} color="black" />
+                        </Pressable>
+                        <Text style={styles.modalTitle}>Edit Task</Text>
+                        <Text style={styles.modalSubTitle}>Name:</Text>
+                        <TextInput 
+                            style={styles.input}
+                            placeholder="Edit task name"
+                            placeholderTextColor="#333"
+                            value={selectedTask ? selectedTask.name : ''}
+                            onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, name: text }) as Task | null)}
+                        />
+                        <Text style={styles.modalSubTitle}>Description:</Text>
+                        <TextInput 
+                            style={styles.input}
+                            value={selectedTask ? selectedTask.description : ''}
+                            onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, description: text }) as Task | null)}
+                        />
+                        <Text style={styles.modalSubTitle}>Coins:</Text>
                         <TextInput 
                             style={styles.input} 
-                            placeholder="Enter task cost" // Add placeholder
+                            placeholder="Enter task cost"
                             placeholderTextColor="#333" 
                             keyboardType="numeric" 
                             value={selectedTask ? String(selectedTask.cost) : ''} 
                             onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, cost: parseInt(text.replace(/[^0-9]/g, ''), 10) }) as Task | null)}
+                        />
+                        <Text style={styles.modalSubTitle}>Duration (Min):</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Duration (minutes)"
+                            placeholderTextColor="#333"
+                            keyboardType="numeric"
+                            value={selectedTask ? String(selectedTask.duration) : ''} 
+                            onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, duration: parseInt(text.replace(/[^0-9]/g, ''), 10) }) as Task | null)}
                         />
                         
                         <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
@@ -184,23 +223,54 @@ const TaskScreen = () => {
                 </View>
             </Modal>
 
+            {/* Add Task Button */}
             <Pressable style={styles.plusButtonStyle} onPress={() => setCreateTaskModalVisible(true)}>
                 <FontAwesome name="plus" size={12} color="black" />
             </Pressable>
 
             {/* Create Task Modal */}
             <Modal
-                animationType="slide"
+                animationType="fade"
                 transparent={true}
                 visible={createTaskModalVisible}
                 onRequestClose={() => setCreateTaskModalVisible(false)}
             >
-                <View style={styles.centeredView}>
+                <View style={styles.overlay}>
                     <View style={styles.modalView}>
-                        <Text style={{ marginVertical: 5, textAlign: 'center', fontWeight: 'bold' }}>Create Task</Text>
-                        <TextInput style={styles.input} placeholder="Task Name" placeholderTextColor="#333" value={taskName} onChangeText={setTaskName} />
-                        <TextInput style={styles.input} placeholder="Description" placeholderTextColor="#333" value={taskDescription} onChangeText={setTaskDescription} />
-                        <TextInput style={styles.input} placeholder="Cost" placeholderTextColor="#333" keyboardType="numeric" value={taskCost} onChangeText={setTaskCost} />
+                        <Pressable onPress={() => setCreateTaskModalVisible(false)} style={styles.closeXButton}>
+                            <FontAwesome name="close" size={24} color="black" />
+                        </Pressable>
+                        <Text style={styles.modalTitle}>Create Task</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Task Name"
+                            placeholderTextColor="#333"
+                            value={taskName}
+                            onChangeText={setTaskName}
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Description"
+                            placeholderTextColor="#333"
+                            value={taskDescription}
+                            onChangeText={setTaskDescription}
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="# of Coins"
+                            placeholderTextColor="#333"
+                            keyboardType="numeric"
+                            value={taskCost}
+                            onChangeText={setTaskCost}
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Duration"
+                            placeholderTextColor="#333"
+                            keyboardType="numeric"
+                            value={taskDuration}
+                            onChangeText={setTaskDuration}
+                        />
                         <Pressable style={styles.plusButtonStyle} onPress={addTaskToFirestore}>
                             <FontAwesome name="plus" size={12} color="black" />
                         </Pressable>
@@ -244,7 +314,7 @@ const styles = StyleSheet.create({
         padding: 10
     },
     title: {
-        fontSize: 24,
+        fontSize: 36,
         fontWeight: 'bold',
         marginBottom: 20,
         alignSelf: 'center',
@@ -256,52 +326,81 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     taskItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         borderRadius: 10,
         marginVertical: 5,
-        width: '50%',
+        width: '90%',
         alignSelf: 'center',
+        alignItems: 'center',
         backgroundColor: '#fff',
-        borderColor: '#000',
+        borderColor: '#A8D5BA',
         borderWidth: 1,
-        padding: 10
+        padding: 15,
+        borderBottomWidth: 10,
+        borderBottomColor: '#A8D5BA',
+        borderRightWidth: 5,
+        borderRightColor: '#A8D5BA',
     },
-    centeredView: {
+    taskName: {
+        fontSize: 16,
+    },
+    overlay: {
         flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)', // Dark overlay for better contrast
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
     },
     modalView: {
-        margin: 20,
+        width: '85%',
         backgroundColor: 'white',
-        borderRadius: 20,
-        padding: 35,
+        borderRadius: 15,
+        padding: 20,
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5 
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 5,
+    },
+    closeXButton: {
+        position: 'absolute',
+        top: 15,
+        right: 15,
+        padding: 5,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 15,
+    },
+    modalSubTitle: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        marginTop: 10,
+        marginBottom: 5
     },
     input: {
-        marginTop: 10,
+        width: '100%',
         borderWidth: 1,
-        width: '50%',
-        alignSelf: 'center',
-        borderColor: '#ccc',
-        padding: 10,
-        marginBottom: 10
-    },
-    button: {
+        borderColor: '#ddd',
         borderRadius: 10,
         padding: 10,
-        elevation: 2,
-        marginBottom: 20
+        marginBottom: 10,
+    },
+    button: {
+        width: '50%',
+        backgroundColor: '#007AFF',
+        padding: 12,
+        borderRadius: 10,
+        alignItems: 'center',
+        marginTop: 10,
     },
     buttonSave: {
         backgroundColor: '#2196F3' 
     },
     buttonDelete: {
-        backgroundColor: '#FF3E3E'
+        backgroundColor: '#FF3B30'
     },
     buttonClose: {
         backgroundColor: '#A8D5BA',

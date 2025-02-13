@@ -6,8 +6,9 @@ import { FontAwesome } from '@expo/vector-icons';
 import { faTasks, faChild, faGift, faHouse, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { useRouter } from 'expo-router';
 import { FIREBASE_DB as FIRESTORE_DB} from '../../../FirebaseConfig';
-import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { query, where, getDocs, collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import uuid from 'react-native-uuid';
+import { getAuth } from 'firebase/auth';
 
 interface Kid {
     docId: string;
@@ -15,6 +16,7 @@ interface Kid {
     name: string;
     age: number;
     coinCount: number;
+    parentUuid: string;
 }
 
 const KidScreen = () => {
@@ -48,12 +50,15 @@ const KidScreen = () => {
         }
 
         try {
+            const auth = getAuth();
+            const parentUuid = auth.currentUser?.uid || '';
             const kidId = uuid.v4() // Generate unique ID
             const newKid = {
                 kidId: kidId,
                 name: kidName,
                 age: parseFloat(kidAge) || 0,
-                coinCount: 0
+                coinCount: 0,
+                parentUuid: parentUuid,
             };
             const docRef = await addDoc(collection(FIRESTORE_DB, 'Kids'), newKid);
             setKids((prevKids) => [...prevKids, { ...newKid, docId: docRef.id }]);
@@ -69,7 +74,9 @@ const KidScreen = () => {
 
     const fetchKids = async () => {
         try {
-            const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Kids'));
+            const auth = getAuth();
+            const parentUuid = auth.currentUser?.uid || '';
+            const querySnapshot = await getDocs(query(collection(FIRESTORE_DB, 'Kids'), where('parentUuid', '==', parentUuid)));
             const fetchedKids: Kid[] = querySnapshot.docs.map((doc) => ({
                 kidId: doc.data().kidId,
                 ...doc.data(),
@@ -113,7 +120,10 @@ const KidScreen = () => {
 
     const renderKid = ({ item }: { item: Kid}) => (
         <Pressable style={styles.kidItem} onPress={() => openKidModal(item)}>
-            <Text>{item.name}</Text>
+            <Text style={styles.kidName}>{item.name}</Text>
+            <Pressable onPress={() => deleteKid(item)}>
+                <FontAwesome name="trash" size={20} color="red" />
+            </Pressable>
         </Pressable>
     );
 
@@ -159,14 +169,21 @@ const KidScreen = () => {
                 renderItem={renderKid}
             />
             
+            {/* Edit Kid Modal */}
             <Modal
-                animationType="slide"
+                animationType="fade"
                 transparent={true}
                 visible={modalVisible}
                 onRequestClose={() => setModalVisible(false)}>
-                <View style={styles.centeredView}>
+                <View style={styles.overlay}>
                     <View style={styles.modalView}>
-                        <Text style={{ marginBottom: 5, textAlign: 'center' }}>Kid Name:</Text>
+                        <Pressable onPress={() => setModalVisible(false)} style={styles.closeXButton}>
+                            <FontAwesome name="close" size={24} color="black" />
+                        </Pressable>
+
+                        <Text style={styles.modalTitle}>Edit Kid</Text>
+
+                        <Text style={styles.modalSubTitle}>Name:</Text>
                         <TextInput 
                             style={styles.input} 
                             placeholder="Edit Kid name" 
@@ -175,10 +192,10 @@ const KidScreen = () => {
                             onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, name: text }) as Kid | null)} 
                         />
 
-                        <Text>Kid Age:</Text>
+                        <Text style={styles.modalSubTitle}>Age:</Text>
                         <TextInput 
                             style={styles.input} 
-                            placeholder="Enter kid's age" // Add placeholder
+                            placeholder="Enter kid's age"
                             placeholderTextColor="#333" 
                             keyboardType="numeric" 
                             value={selectedKid ? String(selectedKid.age) : ''} 
@@ -198,22 +215,40 @@ const KidScreen = () => {
                 </View>
             </Modal>
 
+            {/* Add Kid Button */}
             <Pressable style={styles.plusButtonStyle} onPress={() => setCreateKidModalVisible(true)}>
                 <FontAwesome name="plus" size={12} color="black" />
             </Pressable>
 
             {/* Create Kid Modal */}
             <Modal
-                animationType="slide"
+                animationType="fade"
                 transparent={true}
                 visible={createKidModalVisible}
                 onRequestClose={() => setCreateKidModalVisible(false)}
             >
-                <View style={styles.centeredView}>
+                <View style={styles.overlay}>
                     <View style={styles.modalView}>
-                        <Text style={{ marginVertical: 5, textAlign: 'center', fontWeight: 'bold' }}>Create Kid</Text>
-                        <TextInput style={styles.input} placeholder="Kid Name" placeholderTextColor="#333" value={kidName} onChangeText={setKidName} />
-                        <TextInput style={styles.input} placeholder="Age" placeholderTextColor="#333" keyboardType="numeric" value={kidAge} onChangeText={setKidAge} />
+                        <Pressable onPress={() => setCreateKidModalVisible(false)} style={styles.closeXButton}>
+                            <FontAwesome name="close" size={24} color="black" />
+                        </Pressable>
+
+                        <Text style={styles.modalTitle}>Create Kid</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Kid Name"
+                            placeholderTextColor="#333"
+                            value={kidName}
+                            onChangeText={setKidName}
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Age"
+                            placeholderTextColor="#333"
+                            keyboardType="numeric"
+                            value={kidAge}
+                            onChangeText={setKidAge}
+                        />
                         <Pressable style={styles.plusButtonStyle} onPress={addKidToFirestore}>
                             <FontAwesome name="plus" size={12} color="black" />
                         </Pressable>
@@ -257,7 +292,7 @@ const styles = StyleSheet.create({
         padding: 10
     },
     title: {
-        fontSize: 24,
+        fontSize: 36,
         fontWeight: 'bold',
         marginBottom: 20,
         alignSelf: 'center',
@@ -269,52 +304,81 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     kidItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         borderRadius: 10,
         marginVertical: 5,
-        width: '50%',
+        width: '90%',
         alignSelf: 'center',
+        alignItems: 'center',
         backgroundColor: '#fff',
-        borderColor: '#000',
+        borderColor: '#A8D5BA',
         borderWidth: 1,
-        padding: 10
+        padding: 15,
+        borderBottomWidth: 10,
+        borderBottomColor: '#A8D5BA',
+        borderRightWidth: 5,
+        borderRightColor: '#A8D5BA',
     },
-    centeredView: {
+    kidName: {
+        fontSize: 16,
+    },
+    overlay: {
         flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)', // Dark overlay for better contrast
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
     },
     modalView: {
-        margin: 20,
+        width: '85%',
         backgroundColor: 'white',
-        borderRadius: 20,
-        padding: 35,
+        borderRadius: 15,
+        padding: 20,
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5 
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 5,
+    },
+    closeXButton: {
+        position: 'absolute',
+        top: 15,
+        right: 15,
+        padding: 5,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 15,
+    },
+    modalSubTitle: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        marginTop: 10,
+        marginBottom: 5
     },
     input: {
-        marginTop: 10,
+        width: '100%',
         borderWidth: 1,
-        width: '50%',
-        alignSelf: 'center',
-        borderColor: '#ccc',
-        padding: 10,
-        marginBottom: 10
-    },
-    button: {
+        borderColor: '#ddd',
         borderRadius: 10,
         padding: 10,
-        elevation: 2,
-        marginBottom: 20
+        marginBottom: 10,
+    },
+    button: {
+        width: '50%',
+        backgroundColor: '#007AFF',
+        padding: 12,
+        borderRadius: 10,
+        alignItems: 'center',
+        marginTop: 10,
     },
     buttonSave: {
         backgroundColor: '#2196F3' 
     },
     buttonDelete: {
-        backgroundColor: '#FF3E3E'
+        backgroundColor: '#FF3B30'
     },
     buttonClose: {
         backgroundColor: '#A8D5BA',

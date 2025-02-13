@@ -8,24 +8,63 @@ import {
     Pressable,
     Text,
     StyleSheet,
+    Switch
 } from 'react-native'
-import { FIREBASE_AUTH } from '../../FirebaseConfig';
+import { FIREBASE_AUTH, FIREBASE_DB as FIRESTORE_DB } from '../../FirebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import {addDoc, collection, } from 'firebase/firestore';
 import { useState } from 'react';
 import { FirebaseError } from 'firebase/app';
+import uuid from 'react-native-uuid';
+import { useRouter } from 'expo-router';
+import { updateUserTypeToKid, updateUserTypeToParent } from "../../utils/firebaseUtils";
+
+interface Parent {
+    docId: string;
+    parentId: string;
+    userUID: string;
+    email: string;
+    userType: 'parent' | 'kid;'
+}
 
 const Login = () => {
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
+    const [isParent, setIsParent] = useState(true); 
 	const [loading, setLoading] = useState(false);
     const auth = FIREBASE_AUTH;
+    const [parents, setParents] = useState<Parent[]>([]);
+    const router = useRouter(); 
+
+    // Function to create a parent collection in Firestore
+    const createParentAccount = async (uid: string, email: string) => {
+        try {
+            const parentId = uuid.v4() // Generate unique ID
+            const newParent = {
+                parentId: parentId,
+                userUID: uid,
+                email: email,
+                createdAt: new Date(),
+                userType: 'parent'
+            };
+            const docRef = await addDoc(collection(FIRESTORE_DB, 'Parents'), newParent);
+            setParents((prevParents) => [...prevParents, { ...newParent, docId: docRef.id, userType: 'parent' }]);
+            const userType = await updateUserTypeToParent();
+            console.log("New Parent added with ID: ", docRef.id);
+        } catch (error) {
+            console.error("Error adding document: ", error);
+        }
+    }
 
     // Function to handle sign up
 	const signUp = async () => {
 		setLoading(true);
 		try {
-			await createUserWithEmailAndPassword(auth(), email, password);
-			alert('Check your emails!');
+			const userCredential = await createUserWithEmailAndPassword(auth(), email, password);
+            const uid = userCredential.user.uid;
+            await createParentAccount(uid, email);
+            await updateUserTypeToParent();
+			alert('Account created successfully!');
 		} catch (e: any) {
 			const err = e as FirebaseError;
 			alert('Registration failed: ' + err.message);
@@ -39,7 +78,14 @@ const Login = () => {
 		setLoading(true);
 		try {
 			await signInWithEmailAndPassword(auth(), email, password);
-		} catch (e: any) {
+            if (isParent) {
+                router.replace('/screens/dashboardScreens'); // Navigate to Parent Dashboard
+                await updateUserTypeToParent();
+            } else {
+                router.replace('/screens/kidsViewScreens'); // Navigate to Kids View
+                await updateUserTypeToKid();
+            }
+        } catch (e: any) {
 			const err = e as FirebaseError;
 			alert('Sign in failed: ' + err.message);
 		} finally {
@@ -51,7 +97,7 @@ const Login = () => {
         return (
         <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#0000ff" />
-            <Text>Loading Tasks...</Text>
+            <Text>Loading...</Text>
         </View>
         );
     }
@@ -87,6 +133,17 @@ const Login = () => {
                         secureTextEntry
                         placeholder="Password"
                     />
+
+                    {/* Toggle Switch for Account Type */}
+                    <View style={styles.switchContainer}>
+                        <Text style={[styles.switchText, !isParent && styles.highlightText]}>Kids</Text>
+                        <Switch
+                            value={isParent}
+                            onValueChange={setIsParent}
+                            thumbColor="#fff"
+                        />
+                        <Text style={[styles.switchText, isParent && styles.highlightText]}>Parent</Text>
+                    </View>
                     
                     {/* Sign In Button */}
                     <Pressable
@@ -142,6 +199,20 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    switchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginVertical: 10,
+    },
+    switchText: {
+        fontSize: 16,
+        marginHorizontal: 10,
+    },
+    highlightText: {
+        fontWeight: 'bold',
+        color: '#000', // Highlight color (red for Kids, green for Parent)
     },
     buttonContainer: {
         marginVertical: 10,

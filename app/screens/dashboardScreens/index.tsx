@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../FirebaseConfig';
-import { collection, getDocs, onSnapshot, query, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { 
     View, 
     Text, 
@@ -12,27 +12,21 @@ import {
     StyleSheet 
 } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faGear, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-icons'; // Import specific icons
+import { faGear, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-icons';
 import { Dropdown } from 'react-native-element-dropdown';
 import { BarChart } from 'react-native-chart-kit';
 import { useRouter } from 'expo-router';
 import uuid from 'react-native-uuid';
+import { getAuth } from 'firebase/auth';
+import { updateUserTypeToKid } from "../../../utils/firebaseUtils";
 
 interface Kid {
     kidId: string;
     name: string;
     age: number;
     id: string;
+    parentUuid: string;
 }
-
-// interface Task {
-//     taskId: string;
-//     date: string;
-//     taskName: string;
-//     taskStatus: string;
-//     rewardAMT: string;
-//     childId: string;
-// }
 
 interface Task {
     docId: string;
@@ -81,11 +75,13 @@ const DashboardScreen = () => {
     const [taskCompletionData, setTaskCompletionData] = useState<TaskCompletionData[]>([]);
 
     useEffect(() => {
+        // Subscribe to real-time updates from Firestore
         const unsubscribeKids = fetchKids();
         const unsubscribeTasks = fetchTasks();
         const unsubscribeTaskCompletions = fetchTaskCompletions();
 
         return () => {
+            // Cleanup Firestore listeners when component unmounts
             unsubscribeKids && unsubscribeKids();
             unsubscribeTasks && unsubscribeTasks();
             unsubscribeTaskCompletions && unsubscribeTaskCompletions();
@@ -93,12 +89,14 @@ const DashboardScreen = () => {
     }, []);
 
     useEffect(() => {
+        // Refetch completed tasks when selected kid or selected week changes
         if (selectedKid && selectedWeek) {
             fetchCompletedTasks();
         }
     }, [selectedKid, selectedWeek]);
 
     useEffect(() => {
+        // Set the default week selection to the current week
         const currentDate = new Date();
         const startOfWeek = getStartOfWeek(currentDate);
         const endOfWeek = getEndOfWeek(currentDate);
@@ -110,18 +108,27 @@ const DashboardScreen = () => {
     }, []);
 
 
-    // Fetch kids data dynamically from Firebase
+    const handleKidView = async () => {
+        const userType = await updateUserTypeToKid();
+        router.push("../../screens/kidsViewScreens");
+    };
+    
+    // Fetch kids from Firestore based on the logged-in parent's ID
+    const auth = getAuth();
+    const parentUuid = auth.currentUser?.uid || '';
     const fetchKids = () => {
         try {
             const kidsCollection = collection(FIRESTORE_DB, 'Kids');
-            const q = query(kidsCollection);
+            const q = query(kidsCollection, where('parentUuid', '==', parentUuid));
             const unsubscribe = onSnapshot(q, (querySnapshot) => {
                 const fetchedKids: Kid[] = querySnapshot.docs.map((doc) => ({
                     kidId: doc.data().kidId,
+                    parentUuid: doc.data().parentUuid,
                     ...doc.data(),
                     id: doc.id
                 } as Kid));
                 setKids(fetchedKids);
+                // Auto-select the first kid if none is selected
                 if (fetchedKids.length > 0 && !selectedKid) {
                     setSelectedKid(fetchedKids[0]);
                 }
@@ -134,6 +141,7 @@ const DashboardScreen = () => {
         }
     };
 
+    // Fetch all tasks from Firestore
     const fetchTasks = () => {
         try {
             const tasksCollection = collection(FIRESTORE_DB, 'Tasks');
@@ -150,6 +158,7 @@ const DashboardScreen = () => {
         }
     };
 
+    // Fetch all task completions from Firestore
     const fetchTaskCompletions = () => {
         try {
             const taskCompletionsCollection = collection(FIRESTORE_DB, 'TaskCompletions');
@@ -187,7 +196,7 @@ const DashboardScreen = () => {
         const enrichedData = filteredCompletions.map((completion) => {
             const task = tasks.find((t) => t.taskId === completion.taskId);
             return {
-                taskCompletionDataId: uuid.v4(), // Generate a unique ID
+                taskCompletionDataId: uuid.v4(),
                 ...completion,
                 taskName: task?.name || '',
                 taskDescription: task?.description || '',
@@ -316,7 +325,7 @@ const DashboardScreen = () => {
                 <Pressable onPress={() => router.push('../../(auth)/SignOut')} style={styles.headerButton}>
                     <FontAwesomeIcon icon={faGear} size={24} color="black" />
                 </Pressable>
-                <Pressable style={styles.kidsViewButton} onPress={() => router.push({pathname: '../../../screens/kidsViewScreens'})}>
+                <Pressable style={styles.kidsViewButton} onPress={handleKidView}>
                     <Text style={styles.kidsViewButtonText}>Enter Kids View</Text>
                 </Pressable>
             </View>

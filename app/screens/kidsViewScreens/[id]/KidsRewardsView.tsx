@@ -92,6 +92,7 @@ const renderRewardCard = (
                             setSelectedReward(reward);
                             setModalVisible(true);
                         }}
+                        hitSlop={{ top: 35, bottom: 35, left: 35, right: 35 }}
                     >
                         <Text style={styles.claimText}>Redeem</Text>
                     </Pressable>
@@ -430,7 +431,7 @@ const styles = StyleSheet.create({
         color: '#4CAF50',
     },
     claimText: { 
-        color: 'black', 
+        color: 'white', 
         fontWeight: 'bold' 
     },
     rewardDescription: {

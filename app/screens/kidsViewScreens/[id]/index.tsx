@@ -22,6 +22,7 @@ interface Task {
     description: string;
     cost: number;
     completed: boolean;
+    duration: number;
 }
 
 interface TaskCompletion {
@@ -66,13 +67,50 @@ const addTaskCompletion = async (kidId: string, taskId: string) => {
 };
 
 // Function to render a task card
-const renderTaskCard = (
-    task: Task,
-    completions: TaskCompletion[],
-    styles: any,
-    setSelectedTask: React.Dispatch<React.SetStateAction<Task | null>>,
-    setModalVisible: React.Dispatch<React.SetStateAction<boolean>>
-) => {
+const TaskCard: React.FC<{
+    task: Task;
+    completions: TaskCompletion[];
+    setSelectedTask: React.Dispatch<React.SetStateAction<Task | null>>;
+    setModalVisible: React.Dispatch<React.SetStateAction<boolean>>;
+}> = ({ task, completions, setSelectedTask, setModalVisible }) => {
+    const [timeLeft, setTimeLeft] = useState<number | null>(null); // Initialize as null
+    const [isTimerRunning, setIsTimerRunning] = useState(false);
+
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        if (isTimerRunning && timeLeft && timeLeft > 0) {
+            timer = setInterval(() => {
+                setTimeLeft((prevTime) => prevTime ? prevTime - 1 : null);
+            }, 1000);
+        } else if (timeLeft === 0) {
+            setIsTimerRunning(false);
+        }
+        return () => clearInterval(timer);
+    }, [isTimerRunning, timeLeft]);
+
+    const formatTime = (seconds: number) => {
+        const minutes = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+    };
+
+    const handleStartTimer = () => {
+        if (timeLeft === null) {
+            setTimeLeft(task.duration * 60); // Convert minutes to seconds
+            
+        }
+        setIsTimerRunning(true);
+    };
+
+    const handlePauseTimer = () => {
+        setIsTimerRunning(false);
+    };
+
+    const handleResetTimer = () => {
+        setTimeLeft(task.duration * 60);
+        setIsTimerRunning(false);
+    };
+
     // Check if the task is completed by the kid
     const isCompleted = completions.some((completion) => completion.taskId === task.taskId);
 
@@ -82,19 +120,57 @@ const renderTaskCard = (
                 <Text style={styles.taskName}>{task.name}</Text>
                 {isCompleted ? (
                     <Text style={styles.taskCheck}>✔️</Text>
-                ) : (
+                ) : timeLeft === 0 ? (
                     <Pressable
                         onPress={() => {
                             setSelectedTask(task);
                             setModalVisible(true);
                         }}
+                        hitSlop={{ top: 35, bottom: 35, left: 35, right: 35 }}
                     >
                         <Text style={styles.claimText}>Claim</Text>
                     </Pressable>
-                )}
+                ) : null}
             </View>
             <Text style={styles.taskDescription}>Description: {task.description}</Text>
             <Text style={styles.taskReward}>💰 {task.cost} Coins</Text>
+            
+            {!isCompleted && (
+                <View style={styles.timerContainer}>
+                    {timeLeft !== null && (
+                        <Text style={styles.timerText}>
+                            ⏳ {formatTime(timeLeft)}
+                        </Text>
+                    )}
+                    <View style={styles.timerButtonsContainer}>
+                        {timeLeft === null ? (
+                            <Pressable
+                                style={styles.timerButton}
+                                onPress={handleStartTimer}
+                            >
+                                <Text style={styles.timerButtonText}>Start Timer</Text>
+                            </Pressable>
+                        ) : (
+                            <>
+                                <Pressable
+                                    style={[styles.timerButton, isTimerRunning ? styles.pauseButton : styles.startButton]}
+                                    onPress={isTimerRunning ? handlePauseTimer : handleStartTimer}
+                                >
+                                    <Text style={styles.timerButtonText}>
+                                        {isTimerRunning ? 'Pause' : 'Resume'}
+                                    </Text>
+                                </Pressable>
+                                <Pressable
+                                    style={[styles.timerButton, styles.resetButton]}
+                                    onPress={handleResetTimer}
+                                >
+                                    <Text style={styles.timerButtonText}>Reset</Text>
+                                </Pressable>
+                            </>
+                        )}
+                    </View>
+                </View>
+            )}
         </View>
     );
 };
@@ -278,9 +354,14 @@ const KidScreen = () => {
             <FlatList
                 data={tasks}
                 keyExtractor={(item) => item.taskId || item.docId}
-                renderItem={({ item }) =>
-                    renderTaskCard(item, completions, styles, setSelectedTask, setModalVisible)
-                }
+                renderItem={({ item }) => (
+                    <TaskCard
+                        task={item}
+                        completions={completions}
+                        setSelectedTask={setSelectedTask}
+                        setModalVisible={setModalVisible}
+                    />
+                )}
             />
 
             {/* Claim Task Modal */}
@@ -397,6 +478,42 @@ const styles = StyleSheet.create({
         width: '90%',
         alignSelf: 'center',
     },
+    timerContainer: {
+        marginTop: 10,
+        alignItems: 'center',
+    },
+    timerText: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 10,
+    },
+    timerButtonsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 10,
+    },
+    timerButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 5,
+        backgroundColor: '#4CAF50',
+        minWidth: 120,
+        alignItems: 'center',
+    },
+    timerButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    startButton: {
+        backgroundColor: '#4CAF50',
+    },
+    pauseButton: {
+        backgroundColor: '#f44336',
+    },
+    resetButton: {
+        backgroundColor: '#2196F3',
+    },
     taskHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -412,7 +529,7 @@ const styles = StyleSheet.create({
         color: '#4CAF50',
     },
     claimText: { 
-        color: 'black', 
+        color: 'white', 
         fontWeight: 'bold' 
     },
     taskDescription: {
