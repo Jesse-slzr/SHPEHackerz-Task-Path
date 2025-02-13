@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { FIREBASE_DB as FIRESTORE_DB} from '../../../FirebaseConfig';
 import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import uuid from 'react-native-uuid';
+import {Swipeable, GestureHandlerRootView,} from 'react-native-gesture-handler';
 
 interface Reward {
     docId: string;
@@ -41,7 +42,7 @@ const RewardScreen = () => {
                 rewardId: rewardId,
                 name: rewardName,
                 description: rewardDescription,
-                cost: parseFloat(rewardCost) || 0,
+                cost: parseFloat(rewardCost),
                 claimed: false,
                 childId: ""
             };
@@ -74,15 +75,9 @@ const RewardScreen = () => {
     const updateReward = async (reward: Reward,rewardId: string, updatedName: string, updatedDescription: string, updatedCost: string) => {
         try {
             const rewardRef = doc(FIRESTORE_DB, 'Rewards', reward.docId);
-            await updateDoc(rewardRef, {
-                name: updatedName,
-                description: updatedDescription,
-                cost: parseFloat(updatedCost) || 0
-            });
+            await updateDoc(rewardRef, { name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) });
             setRewards((prevRewards) => prevRewards.map((reward) => 
-                reward.rewardId === rewardId
-                    ? { ...reward, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) }
-                    : reward
+                reward.rewardId === rewardId ? { ...reward, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) } : reward
             ));
             setModalVisible(false);
             setSelectedReward(null);
@@ -106,14 +101,22 @@ const RewardScreen = () => {
         }
     };
 
-    const renderReward = ({ item }: { item: Reward}) => (
-        <Pressable style={styles.rewardItem} onPress={() => openRewardModal(item)}>
-            <Text>{item.name}</Text>
-            <Pressable onPress={() => deleteReward(item)}>
-                <FontAwesome name="trash" size={20} color="red" />
+    const renderReward = ({ item }: { item: Reward }) => {
+        const renderRightActions = () => (
+            <Pressable style={styles.deleteButton} onPress={() => deleteReward(item)}>
+                <FontAwesome name="trash" size={20} color="white" />
+                <Text style={styles.deleteText}>Delete</Text>
             </Pressable>
-        </Pressable>
-    );
+        );
+    
+        return (
+            <Swipeable renderRightActions={renderRightActions}>
+                <Pressable style={styles.rewardItem} onPress={() => openRewardModal(item)}>
+                    <Text>{item.name}</Text>
+                </Pressable>
+            </Swipeable>
+        );
+    };
 
     const openRewardModal = (reward: Reward) => {
         setSelectedReward(reward);
@@ -142,6 +145,7 @@ const RewardScreen = () => {
     }
 
     return (
+        <GestureHandlerRootView style={styles.container}> 
         <KeyboardAvoidingView behavior="padding" style={styles.container}>
             
             {/* Header with settings and navigation to kids view */}
@@ -271,6 +275,7 @@ const RewardScreen = () => {
                 </Pressable>
             </View>
         </KeyboardAvoidingView>
+        </GestureHandlerRootView>
     );
 };
 
@@ -407,7 +412,20 @@ const styles = StyleSheet.create({
         backgroundColor: '#A8D5BA',
         padding: 16,
         paddingBottom: 48,
-    }
+    },
+
+    deleteButton: {  
+        backgroundColor: '#FF3B30',
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: 80,
+        height: '100%', 
+    },
+    deleteText: { 
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
 });
 
 export default RewardScreen;
