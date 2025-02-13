@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { FIREBASE_DB as FIRESTORE_DB} from '../../../FirebaseConfig';
 import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import uuid from 'react-native-uuid';
+import {Swipeable, GestureHandlerRootView,} from 'react-native-gesture-handler';
 
 interface Task {
     docId: string;
@@ -43,10 +44,10 @@ const TaskScreen = () => {
                 taskId: taskId,
                 name: taskName,
                 description: taskDescription,
-                cost: parseFloat(taskCost) || 0,
+                cost: parseFloat(taskCost),
                 completed: false,
                 childId: "",
-                duration: parseFloat(taskDuration) || 0,
+                duration: parseFloat(taskDuration),
             };
             const docRef = await addDoc(collection(FIRESTORE_DB, 'Tasks'), newTask);
             setTasks((prevTasks) => [...prevTasks, { ...newTask, docId: docRef.id }]);
@@ -79,16 +80,9 @@ const TaskScreen = () => {
     const updateTask = async (task: Task,taskId: string, updatedName: string, updatedDescription: string, updatedCost: string, updatedDuration: string) => {
         try {
             const taskRef = doc(FIRESTORE_DB, 'Tasks', task.docId);
-            await updateDoc(taskRef, {
-                name: updatedName,
-                description: updatedDescription,
-                cost: parseFloat(updatedCost) || 0,
-                duration: parseFloat(updatedDuration) || 0
-            });
+            await updateDoc(taskRef, { name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost), duration: parseFloat(updatedDuration) });
             setTasks((prevTasks) => prevTasks.map((task) => 
-                task.taskId === taskId 
-                    ? { ...task, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost), duration: parseFloat(updatedDuration) } 
-                    : task
+                task.taskId === taskId ? { ...task, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost), duration: parseFloat(updatedDuration) } : task
             ));
             setModalVisible(false);
             setSelectedTask(null);
@@ -113,14 +107,22 @@ const TaskScreen = () => {
         }
     };
 
-    const renderTask = ({ item }: { item: Task}) => (
-        <Pressable style={styles.taskItem} onPress={() => openTaskModal(item)}>
-            <Text style={styles.taskName}>{item.name}</Text>
-            <Pressable onPress={() => deleteTask(item)}>
-                <FontAwesome name="trash" size={20} color="red" />
+    const renderTask = ({ item }: { item: Task }) => {
+        const renderRightActions = () => (
+            <Pressable style={styles.deleteButton} onPress={() => deleteTask(item)}>
+                <FontAwesome name="trash" size={20} color="white" />
+                <Text style={styles.deleteText}>Delete</Text>
             </Pressable>
-        </Pressable>
-    );
+        );
+    
+        return (
+            <Swipeable renderRightActions={renderRightActions}>
+                <Pressable style={styles.taskItem} onPress={() => openTaskModal(item)}>
+                    <Text style={styles.taskName}>{item.name}</Text>
+                </Pressable>
+            </Swipeable>
+        );
+    };
 
     const openTaskModal = (task: Task) => {
         setSelectedTask(task);
@@ -149,6 +151,7 @@ const TaskScreen = () => {
     }
 
     return (
+        <GestureHandlerRootView style={styles.container}>
         <KeyboardAvoidingView behavior="padding" style={styles.container}>
             
             {/* Header with settings and navigation to kids view */}
@@ -294,6 +297,7 @@ const TaskScreen = () => {
                 </Pressable>
             </View>
         </KeyboardAvoidingView>
+        </GestureHandlerRootView>
     );
 };
 
@@ -430,7 +434,19 @@ const styles = StyleSheet.create({
         backgroundColor: '#A8D5BA',
         padding: 16,
         paddingBottom: 48,
-    }
+    },
+    deleteButton: {  
+        backgroundColor: '#FF3B30',
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: 80,
+        height: '100%', // This covers full height, making borderRadius less visible
+    },
+    deleteText: { 
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
 });
 
 export default TaskScreen;
