@@ -9,7 +9,9 @@ import {
     TouchableOpacity, 
     Pressable, 
     Dimensions, 
-    StyleSheet 
+    StyleSheet,
+    Modal,
+    Button 
 } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faGear, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-icons';
@@ -73,6 +75,7 @@ const DashboardScreen = () => {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [taskCompletions, setTaskCompletions] = useState<TaskCompletion[]>([]);
     const [taskCompletionData, setTaskCompletionData] = useState<TaskCompletionData[]>([]);
+    const [modalVisible, setModalVisible] = useState(false);
 
     useEffect(() => {
         // Subscribe to real-time updates from Firestore
@@ -111,6 +114,15 @@ const DashboardScreen = () => {
     const handleKidView = async () => {
         const userType = await updateUserTypeToKid();
         router.push("../../screens/kidsViewScreens");
+    };
+
+    const handleGenerateReport = () => {
+        fetchCompletedTasks(); //gets the latest data
+        setModalVisible(true);
+    };
+
+    const closeModal = () => {
+        setModalVisible(false);
     };
     
     // Fetch kids from Firestore based on the logged-in parent's ID
@@ -202,6 +214,8 @@ const DashboardScreen = () => {
                 taskDescription: task?.description || '',
                 taskCost: task?.cost || 0,
                 taskCompleted: task?.completed || false,
+                //timeDuration: task?.timeDuration || 0, // Assuming timeDuration is a field in the task
+                //rating: task?.rating || 0, // Assuming rating is a field in the task
             };
         });
 
@@ -318,7 +332,7 @@ const DashboardScreen = () => {
         );
     }
 
-    return (
+    return ( //Settings tab in the navigation dashboard
         <View style={styles.container}>
             {/* Header with settings and navigation to kids view */}
             <View style={styles.header}>
@@ -404,9 +418,10 @@ const DashboardScreen = () => {
                     }}
                     style={styles.chart}
                 />
-                <TouchableOpacity style={styles.reportButton}>
+                <Pressable style={styles.reportButton}
+                onPress={() => setModalVisible(true)}>
                     <Text style={styles.reportButtonText}>Generate Report</Text>
-                </TouchableOpacity>
+                </Pressable>
             </View>
             
             {/* Recent tasks section */}
@@ -430,6 +445,30 @@ const DashboardScreen = () => {
                     <FontAwesomeIcon icon={faGift} size={24} color="black" />
                 </Pressable>
             </View>
+
+            {/* Modal for Generating Report */}
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={closeModal}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Completed Tasks Report</Text>
+                        {taskCompletionData.length > 0 ? (
+                            taskCompletionData.map((task) => (
+                                <View key={task.taskCompletionDataId} style={styles.taskReportItem}>
+                                    <Text style={styles.taskReportTitle}>{task.taskName}</Text>
+                                </View>
+                            ))
+                        ) : (
+                            <Text style={styles.noCompletedTasks}>None completed.</Text>
+                        )}
+                        <Button title="Close" onPress={closeModal} />
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -608,7 +647,39 @@ const styles = StyleSheet.create({
         backgroundColor: '#A8D5BA',
         padding: 16,
         paddingBottom: 48,
-    },        
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+        width: 300,
+        padding: 20,
+        backgroundColor: 'white',
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 10,
+    },
+    modalText: {
+        fontSize: 16,
+        marginBottom: 20,
+    },
+    taskReportItem: {
+        marginBottom: 10,
+    },
+    taskReportTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    taskReportDetail: {
+        fontSize: 16,
+    }
 });
 
 export default DashboardScreen;
