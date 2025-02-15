@@ -36,7 +36,7 @@ const Page = () => {
 	return (
 		<View>
             <Image
-                source={require('@/assets/images/blank-pfp.png')}
+                source={require('@/assets/images/kel.png')}
                 style={styles.profileImage}
             />
             <Text style={[styles.mainText]}>Logged in as {user?.email}</Text>
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
         borderRightWidth: 5,
         alignItems: 'center',
         justifyContent: 'space-between',
-        width: '70%',
+        width: '50%',
         alignSelf: 'center'
     }
 });
