@@ -52,7 +52,14 @@ const Page = () => {
             <TouchableOpacity onPress={() => router.push('/screens/dashboardScreens')} style={styles.buttonContainer}>
                 <Text>Back to Dashboard</Text>
             </TouchableOpacity>
-		</View>
+	    <View style={styles.switchContainer}>
+                <Text style={[styles.switchText]}>Light Mode</Text>
+                    <Switch
+                        thumbColor="#fff"
+                    />
+                <Text style={[styles.switchText]}>Dark Mode</Text>
+            </View>
+	</View>
 	);
 };
 
@@ -62,7 +69,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
         marginBottom: 20,
-        marginTop: 70
+        marginTop: 30
     },
     profileImage: {
         height: 130,
@@ -89,15 +96,18 @@ const styles = StyleSheet.create({
         color: '#000', // Highlight color (red for Kids, green for Parent)
     },
     buttonContainer: {
+        flexDirection: 'row',
         marginVertical: 10,
         borderRadius: 10,
-        backgroundColor: '#A8D5BA',
-        borderColor: '#fff',
-        borderWidth: 3,
-        padding: 10,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        padding: 15,
+        borderColor: '#A8D5BA',
+        borderBottomWidth: 10,
+        borderRightWidth: 5,
         alignItems: 'center',
         justifyContent: 'space-between',
-        width: '70%',
+        width: '50%',
         alignSelf: 'center'
     }
 });
