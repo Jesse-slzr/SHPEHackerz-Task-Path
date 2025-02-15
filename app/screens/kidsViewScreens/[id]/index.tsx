@@ -120,7 +120,7 @@ const TaskCard: React.FC<{
                 <Text style={styles.taskName}>{task.name}</Text>
                 {isCompleted ? (
                     <Text style={styles.taskCheck}>✔️</Text>
-                ) : timeLeft === 0 ? (
+                ) : task.duration === 0 || timeLeft === 0 ? (
                     <Pressable
                         onPress={() => {
                             setSelectedTask(task);
@@ -135,7 +135,7 @@ const TaskCard: React.FC<{
             <Text style={styles.taskDescription}>Description: {task.description}</Text>
             <Text style={styles.taskReward}>💰 {task.cost} Coins</Text>
             
-            {!isCompleted && (
+            {!isCompleted && task.duration > 0 && (
                 <View style={styles.timerContainer}>
                     {timeLeft !== null && (
                         <Text style={styles.timerText}>
