@@ -3,6 +3,8 @@ import {
     Text,
     TouchableOpacity,
     StyleSheet,
+    Image,
+    Switch
 } from 'react-native';
 import { useEffect, useState } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
@@ -11,7 +13,7 @@ import { useRouter } from 'expo-router';
 import { ColorProperties } from 'react-native-reanimated/lib/typescript/reanimated2/Colors';
 
 const Page = () => {
-	const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<User | null>(null);
     const router = useRouter();
 
     // Check if the user is logged in
@@ -61,6 +63,30 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 20,
         marginTop: 70
+    },
+    profileImage: {
+        height: 130,
+        width: 130,
+        borderRadius: 65,
+        overflow: 'hidden',
+        justifyContent: 'center',
+        alignItems: 'center',
+        alignSelf: 'center',
+        marginTop: 70
+    },
+    switchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginVertical: 10,
+    },
+    switchText: {
+        fontSize: 16,
+        marginHorizontal: 10,
+    },
+    highlightText: {
+        fontWeight: 'bold',
+        color: '#000', // Highlight color (red for Kids, green for Parent)
     },
     buttonContainer: {
         marginVertical: 10,
