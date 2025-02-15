@@ -32,11 +32,18 @@ const Page = () => {
         });
     };
 
-    // settings page for user - buttons for the following: sign out 
-    // and back to dashboard and give options for color blindness
+    // settings page for user - buttons for the following: profile, sign out 
+    // back to dashboard, and a toggle for light/dark mode (to be replaced with menu later)
 	return (
 		<View>
-			<Text style={[styles.mainText]}>Logged in {user?.email}</Text>
+            <Image
+                source={require('@/assets/images/kel.png')}
+                style={styles.profileImage}
+            />
+            <Text style={[styles.mainText]}>Logged in as {user?.email}</Text>
+            <TouchableOpacity style={[styles.buttonContainer]}>
+                <Text>Profile</Text>
+            </TouchableOpacity>
 			<TouchableOpacity onPress={handleSignOut} style={[styles.buttonContainer]}>
                 <Text>Sign out</Text>
             </TouchableOpacity>
@@ -63,8 +70,8 @@ const styles = StyleSheet.create({
         borderWidth: 3,
         padding: 10,
         alignItems: 'center',
-        justifyContent: 'center',
-        width: '50%',
+        justifyContent: 'space-between',
+        width: '70%',
         alignSelf: 'center'
     }
 });
