@@ -25,11 +25,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="myapp"/>
-<<<<<<< HEAD
         <data android:scheme="com.shpehackerz.taskpath"/>
-=======
-        <data android:scheme="com.anonymous.SHPEHackerzTaskPath"/>
->>>>>>> b922ede1e36739dfe850ad89ed68039b80fc2f7d
       </intent-filter>
     </activity>
     <activity android:name="com.facebook.react.devsupport.DevSettingsActivity" android:exported="false"/>
