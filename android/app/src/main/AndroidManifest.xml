@@ -25,7 +25,11 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="myapp"/>
+<<<<<<< HEAD
         <data android:scheme="com.anonymous.SHPEHackerzTaskPath"/>
+=======
+        <data android:scheme="com.shpehackerz.taskpath"/>
+>>>>>>> william-init
       </intent-filter>
     </activity>
     <activity android:name="com.facebook.react.devsupport.DevSettingsActivity" android:exported="false"/>
