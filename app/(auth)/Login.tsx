@@ -24,7 +24,8 @@ interface Parent {
     parentId: string;
     userUID: string;
     email: string;
-    userType: 'parent' | 'kid;'
+    userType: 'parent' | 'kid';
+    createdAt?: Date;
 }
 
 const Login = () => {
@@ -39,17 +40,17 @@ const Login = () => {
     // Function to create a parent collection in Firestore
     const createParentAccount = async (uid: string, email: string) => {
         try {
-            const parentId = uuid.v4() // Generate unique ID
-            const newParent = {
+            const parentId = uuid.v4() as string; // Generate unique ID
+            const newParent: Omit<Parent, 'docId'> = {
                 parentId: parentId,
                 userUID: uid,
                 email: email,
-                createdAt: new Date(),
                 userType: 'parent'
             };
             const docRef = await addDoc(collection(FIRESTORE_DB, 'Parents'), newParent);
-            setParents((prevParents) => [...prevParents, { ...newParent, docId: docRef.id, userType: 'parent' }]);
-            const userType = await updateUserTypeToParent();
+            const parentWithDocId: Parent = { ...newParent, docId: docRef.id }; // Explicitly type the final object
+            setParents((prevParents) => [...prevParents, parentWithDocId]);
+            // const userType = await updateUserTypeToParent();
             console.log("New Parent added with ID: ", docRef.id);
         } catch (error) {
             console.error("Error adding document: ", error);
