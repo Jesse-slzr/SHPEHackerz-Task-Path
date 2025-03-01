@@ -23,6 +23,7 @@ interface Task {
     cost: number;
     completed: boolean;
     duration: number;
+    timerType: 'countdown' | 'countup';
 }
 
 interface TaskCompletion {
@@ -31,10 +32,12 @@ interface TaskCompletion {
     kidId: string;
     taskId: string;
     dateCompleted: Date;
+    countupDuration?: number;
+    countdownDuration?: number;
 }
 
 // Function to add task completion to Firestore
-const addTaskCompletion = async (kidId: string, taskId: string) => {
+const addTaskCompletion = async (kidId: string, taskId: string, countupDuration?: number, countdownDuration?: number) => {
     try {
         // Check if task is already completed for the kid
         const completionsRef = collection(FIRESTORE_DB, 'TaskCompletions');
@@ -51,13 +54,24 @@ const addTaskCompletion = async (kidId: string, taskId: string) => {
         }
 
         // Add new task completion
-        const generatedId = uuid.v4()
-        await addDoc(completionsRef, {
-            taskCompletionId: generatedId,
+        const generatedId = uuid.v4();
+        const completionData: Omit<TaskCompletion, 'docId'> = {
+            taskCompletionId: generatedId as string,
             kidId,
             taskId,
-            dateCompleted: new Date(), // Timestamp of completion
-        });
+            dateCompleted: new Date(),
+        };
+
+        if (countupDuration !== undefined) {
+            completionData.countupDuration = countupDuration;
+            console.log(`Saving countupDuration: ${countupDuration}`);
+        }
+        if (countdownDuration !== undefined) {
+            completionData.countdownDuration = countdownDuration;
+            console.log(`Saving countdownDuration: ${countdownDuration}`);
+        }
+
+        await addDoc(completionsRef, completionData);
 
         return true;
     } catch (error) {
@@ -70,23 +84,26 @@ const addTaskCompletion = async (kidId: string, taskId: string) => {
 const TaskCard: React.FC<{
     task: Task;
     completions: TaskCompletion[];
-    setSelectedTask: React.Dispatch<React.SetStateAction<Task | null>>;
+    setSelectedTask: React.Dispatch<React.SetStateAction<Task & { timeLeft?: number | null } | null>>;
     setModalVisible: React.Dispatch<React.SetStateAction<boolean>>;
 }> = ({ task, completions, setSelectedTask, setModalVisible }) => {
-    const [timeLeft, setTimeLeft] = useState<number | null>(null); // Initialize as null
+    const [timeLeft, setTimeLeft] = useState<number | null>(task.timerType === 'countdown' ? task.duration * 60 : 0); // Countdown starts at duration, count-up at 0
     const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const [isFinished, setIsFinished] = useState(false);
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
-        if (isTimerRunning && timeLeft && timeLeft > 0) {
+        if (isTimerRunning) {
             timer = setInterval(() => {
-                setTimeLeft((prevTime) => prevTime ? prevTime - 1 : null);
+                setTimeLeft((prevTime) =>
+                    task.timerType === 'countdown'
+                        ? prevTime !== null && prevTime > 0 ? prevTime - 1 : 0
+                        : prevTime !== null ? prevTime + 1 : 0
+                );
             }, 1000);
-        } else if (timeLeft === 0) {
-            setIsTimerRunning(false);
         }
         return () => clearInterval(timer);
-    }, [isTimerRunning, timeLeft]);
+    }, [isTimerRunning, task.timerType]);
 
     const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60);
@@ -96,8 +113,7 @@ const TaskCard: React.FC<{
 
     const handleStartTimer = () => {
         if (timeLeft === null) {
-            setTimeLeft(task.duration * 60); // Convert minutes to seconds
-            
+            setTimeLeft(task.timerType === 'countdown' ? task.duration * 60 : 0);
         }
         setIsTimerRunning(true);
     };
@@ -107,8 +123,14 @@ const TaskCard: React.FC<{
     };
 
     const handleResetTimer = () => {
-        setTimeLeft(task.duration * 60);
+        setTimeLeft(task.timerType === 'countdown' ? task.duration * 60 : 0);
         setIsTimerRunning(false);
+        setIsFinished(false);
+    };
+
+    const handleFinishTimer = () => {
+        setIsTimerRunning(false);
+        setIsFinished(true); 
     };
 
     // Check if the task is completed by the kid
@@ -120,10 +142,20 @@ const TaskCard: React.FC<{
                 <Text style={styles.taskName}>{task.name}</Text>
                 {isCompleted ? (
                     <Text style={styles.taskCheck}>✔️</Text>
-                ) : task.duration === 0 || timeLeft === 0 ? (
+                ) : task.timerType === 'countdown' && (task.duration === 0 || timeLeft === 0) ? (
                     <Pressable
                         onPress={() => {
-                            setSelectedTask(task);
+                            setSelectedTask({ ...task, timeLeft });
+                            setModalVisible(true);
+                        }}
+                        hitSlop={{ top: 35, bottom: 35, left: 35, right: 35 }}
+                    >
+                        <Text style={styles.claimText}>Claim</Text>
+                    </Pressable>
+                ) : task.timerType === 'countup' && isFinished ? (
+                    <Pressable
+                        onPress={() => {
+                            setSelectedTask({ ...task, timeLeft });
                             setModalVisible(true);
                         }}
                         hitSlop={{ top: 35, bottom: 35, left: 35, right: 35 }}
@@ -135,7 +167,7 @@ const TaskCard: React.FC<{
             <Text style={styles.taskDescription}>Description: {task.description}</Text>
             <Text style={styles.taskReward}>💰 {task.cost} Coins</Text>
             
-            {!isCompleted && task.duration > 0 && (
+            {!isCompleted && (
                 <View style={styles.timerContainer}>
                     {timeLeft !== null && (
                         <Text style={styles.timerText}>
@@ -143,7 +175,7 @@ const TaskCard: React.FC<{
                         </Text>
                     )}
                     <View style={styles.timerButtonsContainer}>
-                        {timeLeft === null ? (
+                        {(timeLeft === null || (task.timerType === 'countup' && timeLeft === 0 && !isFinished)) ? (
                             <Pressable
                                 style={styles.timerButton}
                                 onPress={handleStartTimer}
@@ -157,15 +189,24 @@ const TaskCard: React.FC<{
                                     onPress={isTimerRunning ? handlePauseTimer : handleStartTimer}
                                 >
                                     <Text style={styles.timerButtonText}>
-                                        {isTimerRunning ? 'Pause' : 'Resume'}
+                                        {isTimerRunning ? 'Pause' : 'Start'}
                                     </Text>
                                 </Pressable>
-                                <Pressable
-                                    style={[styles.timerButton, styles.resetButton]}
-                                    onPress={handleResetTimer}
-                                >
-                                    <Text style={styles.timerButtonText}>Reset</Text>
-                                </Pressable>
+                                {task.timerType === 'countup' && timeLeft !== 0 && !isFinished ? (
+                                    <Pressable
+                                        style={[styles.timerButton, styles.finishButton]}
+                                        onPress={handleFinishTimer}
+                                    >
+                                        <Text style={styles.timerButtonText}>Finish</Text>
+                                    </Pressable>
+                                ) : (
+                                    <Pressable
+                                        style={[styles.timerButton, styles.resetButton]}
+                                        onPress={handleResetTimer}
+                                    >
+                                        <Text style={styles.timerButtonText}>Reset</Text>
+                                    </Pressable>
+                                )}
                             </>
                         )}
                     </View>
@@ -183,7 +224,7 @@ const KidScreen = () => {
     const [completions, setCompletions] = useState<TaskCompletion[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [modalVisible, setModalVisible] = useState<boolean>(false);
-    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [selectedTask, setSelectedTask] = useState<Task & { timeLeft?: number | null } | null>(null);
 
     useEffect(() => {
         const kidRef = collection(FIRESTORE_DB, 'Kids');
@@ -277,10 +318,20 @@ const KidScreen = () => {
     };
 
     const handleClaimTask = async () => {
-        if (!selectedTask) return;
+        if (!selectedTask ) return;
     
         try {
-            const success = await addTaskCompletion(kidId, selectedTask.taskId);
+            const durationToRecord = // Recorded in seconds
+                selectedTask.timerType === 'countup'
+                    ? selectedTask.timeLeft
+                    : selectedTask.duration * 60;
+
+            const success = await addTaskCompletion(
+                kidId,
+                selectedTask.taskId,
+                selectedTask.timerType === 'countup' ? durationToRecord ?? undefined  : undefined,
+                selectedTask.timerType === 'countdown' ? durationToRecord ?? undefined  : undefined
+            );
     
             if (success) {
                 setTasks((prevTasks) =>
@@ -513,6 +564,9 @@ const styles = StyleSheet.create({
     },
     resetButton: {
         backgroundColor: '#2196F3',
+    },
+    finishButton: {
+        backgroundColor: '#FF9800',
     },
     taskHeader: {
         flexDirection: 'row',

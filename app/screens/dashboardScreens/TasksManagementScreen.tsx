@@ -1,6 +1,6 @@
 // TaskScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
+import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { FontAwesome } from '@expo/vector-icons';
 import { faTasks, faChild, faGift, faHouse, faPlus} from '@fortawesome/free-solid-svg-icons';
@@ -19,6 +19,7 @@ interface Task {
     completed: boolean;
     childId: string;
     duration: number;
+    timerType: 'countdown' | 'countup';
 }
 
 const TaskScreen = () => {
@@ -26,6 +27,7 @@ const TaskScreen = () => {
     const [taskDescription, setTaskDescription] = useState('');
     const [taskCost, setTaskCost] = useState('');
     const [taskDuration, setTaskDuration] = useState('');
+    const [timerType, setTimerType] = useState<'countdown' | 'countup'>('countup');
     const [tasks, setTasks] = useState<Task[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [createTaskModalVisible, setCreateTaskModalVisible] = useState(false);
@@ -39,22 +41,25 @@ const TaskScreen = () => {
 
     const addTaskToFirestore = async () => {
         try {
-            const taskId = uuid.v4() // Generate unique ID
-            const newTask = {
-                taskId: taskId as string,
+            const taskId = uuid.v4() as string;// Generate unique ID
+            const newTask: Omit<Task, 'docId'> = {
+                taskId,
                 name: taskName,
                 description: taskDescription,
-                cost: parseFloat(taskCost),
+                cost: parseFloat(taskCost) || 0,
                 completed: false,
                 childId: "",
-                duration: parseFloat(taskDuration),
+                duration: timerType === 'countdown' ? parseFloat(taskDuration) || 0 : 0,
+                timerType
             };
             const docRef = await addDoc(collection(FIRESTORE_DB, 'Tasks'), newTask);
-            setTasks((prevTasks) => [...prevTasks, { ...newTask, docId: docRef.id }]);
+            const taskWithDocId: Task = { ...newTask, docId: docRef.id };
+            setTasks((prevTasks) => [...prevTasks, taskWithDocId]);
             setTaskName('');
             setTaskDescription('');
             setTaskCost('');
             setTaskDuration('');
+            setTimerType('countup');
             setCreateTaskModalVisible(false);   
         } catch (error) {
             console.error("Error adding document: ", error);
@@ -65,10 +70,11 @@ const TaskScreen = () => {
         try {
             const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Tasks'));
             const fetchedTasks: Task[] = querySnapshot.docs.map((doc) => ({
+                docId: doc.id,
                 taskId: doc.data().taskId,
                 ...doc.data(),
                 duration: doc.data().duration || 0,
-                docId: doc.id
+                timerType: (doc.data().timerType as 'countdown' | 'countup') || 'countup'
             } as Task));
             setTasks(fetchedTasks);
             setLoading(false);
@@ -77,12 +83,19 @@ const TaskScreen = () => {
         }
     };
 
-    const updateTask = async (task: Task,taskId: string, updatedName: string, updatedDescription: string, updatedCost: string, updatedDuration: string) => {
+    const updateTask = async (task: Task,taskId: string, updatedName: string, updatedDescription: string, updatedCost: string, updatedDuration: string, updatedTimerType: 'countdown' | 'countup') => {
         try {
             const taskRef = doc(FIRESTORE_DB, 'Tasks', task.docId);
-            await updateDoc(taskRef, { name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost), duration: parseFloat(updatedDuration) });
+            const updatedDurationValue = updatedTimerType === 'countdown' ? parseFloat(updatedDuration) || 0 : 0;
+            await updateDoc(taskRef, {
+                name: updatedName,
+                description: updatedDescription,
+                cost: parseFloat(updatedCost),
+                duration: updatedDurationValue,
+                timerType: updatedTimerType
+            });
             setTasks((prevTasks) => prevTasks.map((task) => 
-                task.taskId === taskId ? { ...task, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost), duration: parseFloat(updatedDuration) } : task
+                task.taskId === taskId ? { ...task, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost), duration: updatedDurationValue, timerType: updatedTimerType } : task
             ));
             setModalVisible(false);
             setSelectedTask(null);
@@ -125,13 +138,13 @@ const TaskScreen = () => {
     };
 
     const openTaskModal = (task: Task) => {
-        setSelectedTask(task);
+        setSelectedTask({ ...task });
         setModalVisible(true);
     };
 
     const handleSave = () => {
         if (selectedTask) {
-            updateTask(selectedTask,selectedTask.taskId, selectedTask.name, selectedTask.description, selectedTask.cost.toString(), selectedTask.duration.toString());
+            updateTask(selectedTask,selectedTask.taskId, selectedTask.name, selectedTask.description, selectedTask.cost.toString(), selectedTask.duration.toString(), selectedTask.timerType);
         }
     };
 
@@ -152,151 +165,200 @@ const TaskScreen = () => {
 
     return (
         <GestureHandlerRootView style={styles.container}>
-        <KeyboardAvoidingView behavior="padding" style={styles.container}>
-            
-            {/* Header with settings and navigation to kids view */}
-            <View style={styles.header}>
-                <Pressable onPress={() => router.push('../dashboardScreens')} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
-                    <FontAwesomeIcon icon={faHouse} size={24} color="black" />
-                </Pressable>
-            </View>
-
-            <Text style={styles.title}>Manage Tasks</Text>
-            <FlatList
-                data={tasks}
-                keyExtractor={(item) => item.taskId || item.docId}
-                renderItem={renderTask}
-            />
-            
-            {/* Edit Task Modal */}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}>
-                <View style={styles.overlay}>
-                    <View style={styles.modalView}>
-                        <Pressable onPress={() => setModalVisible(false)} style={styles.closeXButton}>
-                            <FontAwesome name="close" size={24} color="black" />
-                        </Pressable>
-                        <Text style={styles.modalTitle}>Edit Task</Text>
-                        <Text style={styles.modalSubTitle}>Name:</Text>
-                        <TextInput 
-                            style={styles.input}
-                            placeholder="Edit task name"
-                            placeholderTextColor="#333"
-                            value={selectedTask ? selectedTask.name : ''}
-                            onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, name: text }) as Task | null)}
-                        />
-                        <Text style={styles.modalSubTitle}>Description:</Text>
-                        <TextInput 
-                            style={styles.input}
-                            value={selectedTask ? selectedTask.description : ''}
-                            onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, description: text }) as Task | null)}
-                        />
-                        <Text style={styles.modalSubTitle}>Coins:</Text>
-                        <TextInput 
-                            style={styles.input} 
-                            placeholder="Enter task cost"
-                            placeholderTextColor="#333" 
-                            keyboardType="numeric" 
-                            value={selectedTask ? String(selectedTask.cost) : ''} 
-                            onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, cost: parseInt(text.replace(/[^0-9]/g, ''), 10) }) as Task | null)}
-                        />
-                        <Text style={styles.modalSubTitle}>Duration (Min):</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Duration (minutes)"
-                            placeholderTextColor="#333"
-                            keyboardType="numeric"
-                            value={selectedTask ? String(selectedTask.duration) : ''} 
-                            onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, duration: parseInt(text.replace(/[^0-9]/g, ''), 10) }) as Task | null)}
-                        />
-                        
-                        <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
-                            <Text style={styles.textStyle}>Save</Text>
-                        </Pressable>
-                        <Pressable style={[styles.button, styles.buttonDelete]} onPress={handleDelete}>
-                            <Text style={styles.textStyle}>Delete</Text>
-                        </Pressable>
-                        <Pressable style={[styles.button, styles.buttonClose]} onPress={() => setModalVisible(false)}>
-                            <Text style={styles.textStyle}>Close</Text>
-                        </Pressable>
-                    </View>
+            <KeyboardAvoidingView behavior="padding" style={styles.container}>
+                
+                {/* Header with settings and navigation to kids view */}
+                <View style={styles.header}>
+                    <Pressable onPress={() => router.push('../dashboardScreens')} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                        <FontAwesomeIcon icon={faHouse} size={24} color="black" />
+                    </Pressable>
                 </View>
-            </Modal>
 
-            {/* Add Task Button */}
-            <Pressable style={styles.plusButtonStyle} onPress={() => setCreateTaskModalVisible(true)}>
-                <FontAwesome name="plus" size={12} color="black" />
-            </Pressable>
-
-            {/* Create Task Modal */}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={createTaskModalVisible}
-                onRequestClose={() => setCreateTaskModalVisible(false)}
-            >
-                <View style={styles.overlay}>
-                    <View style={styles.modalView}>
-                        <Pressable onPress={() => setCreateTaskModalVisible(false)} style={styles.closeXButton}>
-                            <FontAwesome name="close" size={24} color="black" />
-                        </Pressable>
-                        <Text style={styles.modalTitle}>Create Task</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Task Name"
-                            placeholderTextColor="#333"
-                            value={taskName}
-                            onChangeText={setTaskName}
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Description"
-                            placeholderTextColor="#333"
-                            value={taskDescription}
-                            onChangeText={setTaskDescription}
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="# of Coins"
-                            placeholderTextColor="#333"
-                            keyboardType="numeric"
-                            value={taskCost}
-                            onChangeText={setTaskCost}
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Duration"
-                            placeholderTextColor="#333"
-                            keyboardType="numeric"
-                            value={taskDuration}
-                            onChangeText={setTaskDuration}
-                        />
-                        <Pressable style={styles.plusButtonStyle} onPress={addTaskToFirestore}>
-                            <FontAwesome name="plus" size={12} color="black" />
-                        </Pressable>
-                        <Pressable style={styles.buttonClose} onPress={() => setCreateTaskModalVisible(false)}>
-                            <Text>Close</Text>
-                        </Pressable>
+                <Text style={styles.title}>Manage Tasks</Text>
+                <FlatList
+                    data={tasks}
+                    keyExtractor={(item) => item.taskId || item.docId}
+                    renderItem={renderTask}
+                />
+                
+                {/* Edit Task Modal */}
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={modalVisible}
+                    onRequestClose={() => setModalVisible(false)}
+                >
+                    <View style={styles.overlay}>
+                        <KeyboardAvoidingView behavior="padding" style={styles.modalContainer}>
+                            <ScrollView contentContainerStyle={styles.modalScrollContent}>
+                                <View style={styles.modalView}>
+                                    <Pressable onPress={() => setModalVisible(false)} style={styles.closeXButton}>
+                                        <FontAwesome name="close" size={24} color="black" />
+                                    </Pressable>
+                                    <Text style={styles.modalTitle}>Edit Task</Text>
+                                    <Text style={styles.modalSubTitle}>Name:</Text>
+                                    <TextInput 
+                                        style={styles.input}
+                                        placeholder="Edit task name"
+                                        placeholderTextColor="#333"
+                                        value={selectedTask ? selectedTask.name : ''}
+                                        onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, name: text }) as Task | null)}
+                                    />
+                                    <Text style={styles.modalSubTitle}>Description:</Text>
+                                    <TextInput 
+                                        style={styles.input}
+                                        value={selectedTask ? selectedTask.description : ''}
+                                        onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, description: text }) as Task | null)}
+                                    />
+                                    <Text style={styles.modalSubTitle}>Coins:</Text>
+                                    <TextInput 
+                                        style={styles.input} 
+                                        placeholder="Enter task cost"
+                                        placeholderTextColor="#333" 
+                                        keyboardType="numeric" 
+                                        value={selectedTask ? String(selectedTask.cost) : ''} 
+                                        onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, cost: parseInt(text.replace(/[^0-9]/g, ''), 10) }) as Task | null)}
+                                    />
+                                    <Text style={styles.modalSubTitle}>Timer Type:</Text>
+                                    <View style={styles.radioContainer}>
+                                        <Pressable
+                                            style={styles.radioOption}
+                                            onPress={() => setSelectedTask((prev) => prev ? { ...prev, timerType: 'countdown' } : null)}
+                                        >
+                                            <View style={[styles.radioCircle, selectedTask?.timerType === 'countdown' && styles.radioSelected]} />
+                                            <Text style={styles.radioText}>Countdown</Text>
+                                        </Pressable>
+                                        <Pressable
+                                            style={styles.radioOption}
+                                            onPress={() => setSelectedTask((prev) => prev ? { ...prev, timerType: 'countup' } : null)}
+                                        >
+                                            <View style={[styles.radioCircle, selectedTask?.timerType === 'countup' && styles.radioSelected]} />
+                                            <Text style={styles.radioText}>Count-up</Text>
+                                        </Pressable>
+                                    </View>
+                                    {selectedTask?.timerType === 'countdown' && (
+                                        <View style={styles.inputContainer}>
+                                            <Text style={styles.modalSubTitle}>Duration (minutes):</Text>
+                                            <TextInput
+                                                style={styles.input}
+                                                placeholder="Duration (minutes)"
+                                                placeholderTextColor="#333"
+                                                keyboardType="numeric"
+                                                value={selectedTask ? String(selectedTask.duration) : ''}
+                                                onChangeText={(text) => setSelectedTask((prev) => prev ? { ...prev, duration: parseInt(text.replace(/[^0-9]/g, ''), 10) || 0 } : null)}
+                                            />
+                                        </View>
+                                    )}
+                                    
+                                    <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
+                                        <Text style={styles.textStyle}>Save</Text>
+                                    </Pressable>
+                                    <Pressable style={[styles.button, styles.buttonDelete]} onPress={handleDelete}>
+                                        <Text style={styles.textStyle}>Delete</Text>
+                                    </Pressable>
+                                    <Pressable style={[styles.button, styles.buttonClose]} onPress={() => setModalVisible(false)}>
+                                        <Text style={styles.textStyle}>Close</Text>
+                                    </Pressable>
+                                </View>
+                            </ScrollView>
+                        </KeyboardAvoidingView>
                     </View>
-                </View>
-            </Modal>
+                </Modal>
 
-            {/* Bottom navigation with icons */}
-            <View style={styles.bottomNavigation}>
-                <Pressable onPress={() => router.push('/screens/dashboardScreens/TasksManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
-                    <FontAwesomeIcon icon={faTasks} size={24} color="black" />
+                {/* Add Task Button */}
+                <Pressable style={styles.plusButtonStyle} onPress={() => setCreateTaskModalVisible(true)}>
+                    <FontAwesome name="plus" size={12} color="black" />
                 </Pressable>
-                <Pressable onPress={() => router.push('/screens/dashboardScreens/KidsManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
-                    <FontAwesomeIcon icon={faChild} size={24} color="black" />
-                </Pressable>
-                <Pressable onPress={() => router.push('/screens/dashboardScreens/RewardsManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
-                    <FontAwesomeIcon icon={faGift} size={24} color="black" />
-                </Pressable>
-            </View>
-        </KeyboardAvoidingView>
+
+                {/* Create Task Modal */}
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={createTaskModalVisible}
+                    onRequestClose={() => setCreateTaskModalVisible(false)}
+                >
+                    <View style={styles.overlay}>
+                        <KeyboardAvoidingView behavior="padding" style={styles.modalContainer}>
+                            <ScrollView contentContainerStyle={styles.modalScrollContent}>
+                                <View style={styles.modalView}>
+                                    <Pressable onPress={() => setCreateTaskModalVisible(false)} style={styles.closeXButton}>
+                                        <FontAwesome name="close" size={24} color="black" />
+                                    </Pressable>
+                                    <Text style={styles.modalTitle}>Create Task</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Task Name"
+                                        placeholderTextColor="#333"
+                                        value={taskName}
+                                        onChangeText={setTaskName}
+                                    />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Description"
+                                        placeholderTextColor="#333"
+                                        value={taskDescription}
+                                        onChangeText={setTaskDescription}
+                                    />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="# of Coins"
+                                        placeholderTextColor="#333"
+                                        keyboardType="numeric"
+                                        value={taskCost}
+                                        onChangeText={setTaskCost}
+                                    />
+                                    <Text style={styles.modalSubTitle}>Timer Type:</Text>
+                                    <View style={styles.radioContainer}>
+                                        <Pressable
+                                            style={styles.radioOption}
+                                            onPress={() => setTimerType('countdown')}
+                                        >
+                                            <View style={[styles.radioCircle, timerType === 'countdown' && styles.radioSelected]} />
+                                            <Text style={styles.radioText}>Countdown</Text>
+                                        </Pressable>
+                                        <Pressable
+                                            style={styles.radioOption}
+                                            onPress={() => setTimerType('countup')}
+                                        >
+                                            <View style={[styles.radioCircle, timerType === 'countup' && styles.radioSelected]} />
+                                            <Text style={styles.radioText}>Count-up</Text>
+                                        </Pressable>
+                                    </View>
+                                    {timerType === 'countdown' && (
+                                        <TextInput
+                                            style={styles.input}
+                                            placeholder="Duration (minutes)"
+                                            placeholderTextColor="#333"
+                                            keyboardType="numeric"
+                                            value={taskDuration}
+                                            onChangeText={setTaskDuration}
+                                        />
+                                    )}
+                                    <Pressable style={styles.plusButtonStyle} onPress={addTaskToFirestore}>
+                                        <FontAwesome name="plus" size={12} color="black" />
+                                    </Pressable>
+                                    <Pressable style={styles.buttonClose} onPress={() => setCreateTaskModalVisible(false)}>
+                                        <Text>Close</Text>
+                                    </Pressable>
+                                </View>
+                            </ScrollView>
+                        </KeyboardAvoidingView>
+                    </View>
+                </Modal>
+
+                {/* Bottom navigation with icons */}
+                <View style={styles.bottomNavigation}>
+                    <Pressable onPress={() => router.push('/screens/dashboardScreens/TasksManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                        <FontAwesomeIcon icon={faTasks} size={24} color="black" />
+                    </Pressable>
+                    <Pressable onPress={() => router.push('/screens/dashboardScreens/KidsManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                        <FontAwesomeIcon icon={faChild} size={24} color="black" />
+                    </Pressable>
+                    <Pressable onPress={() => router.push('/screens/dashboardScreens/RewardsManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                        <FontAwesomeIcon icon={faGift} size={24} color="black" />
+                    </Pressable>
+                </View>
+            </KeyboardAvoidingView>
         </GestureHandlerRootView>
     );
 };
@@ -355,8 +417,18 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalScrollContent: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     modalView: {
-        width: '85%',
+        width: '100%',
         backgroundColor: 'white',
         borderRadius: 15,
         padding: 20,
@@ -384,6 +456,10 @@ const styles = StyleSheet.create({
         marginTop: 10,
         marginBottom: 5
     },
+    inputContainer: {
+        width: '100%',
+        alignItems: 'center',
+    },
     input: {
         width: '100%',
         borderWidth: 1,
@@ -391,6 +467,30 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         padding: 10,
         marginBottom: 10,
+    },
+    radioContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        width: '100%',
+        marginBottom: 10,
+    },
+    radioOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    radioCircle: {
+        width: 30,
+        height: 30,
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: '#A8D5BA',
+        marginRight: 8,
+    },
+    radioSelected: {
+        backgroundColor: '#A8D5BA',
+    },
+    radioText: {
+        fontSize: 16,
     },
     button: {
         width: '50%',

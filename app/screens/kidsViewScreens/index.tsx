@@ -54,7 +54,17 @@ const KidsSelectionScreen = () => {
     const fetchKids = async () => {
         try {
             const auth = getAuth();
+            if (!auth.currentUser) {
+                console.error('User not authenticated');
+                setLoading(false);
+                return;
+            }
             const parentUuid = auth.currentUser?.uid || '';
+            if (!parentUuid) {
+                console.error('Invalid parentUuid:', parentUuid);
+                setLoading(false);
+                return;
+            }
             const querySnapshot = await getDocs(query(collection(FIRESTORE_DB, 'Kids'), where('parentUuid', '==', parentUuid)));
             const fetchedKids: Kid[] = querySnapshot.docs.map((doc) => ({
                 kidId: doc.data().kidId,
@@ -62,9 +72,10 @@ const KidsSelectionScreen = () => {
                 docId: doc.id
             } as Kid));
             setKids(fetchedKids);
-            setLoading(false);
         } catch (error) {
             console.error('Error fetching Kids:', error);
+        } finally {
+            setLoading(false);
         }
     };
 

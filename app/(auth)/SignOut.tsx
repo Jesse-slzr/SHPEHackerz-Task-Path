@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { FIREBASE_AUTH } from '../../FirebaseConfig';
 import { useRouter } from 'expo-router';
-import { ColorProperties } from 'react-native-reanimated/lib/typescript/reanimated2/Colors';
+
 
 const Page = () => {
     const [user, setUser] = useState<User | null>(null);
