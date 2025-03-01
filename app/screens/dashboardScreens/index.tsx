@@ -208,7 +208,7 @@ const DashboardScreen = () => {
         const enrichedData = filteredCompletions.map((completion) => {
             const task = tasks.find((t) => t.taskId === completion.taskId);
             return {
-                taskCompletionDataId: uuid.v4(),
+                taskCompletionDataId: uuid.v4() as string,
                 ...completion,
                 taskName: task?.name || '',
                 taskDescription: task?.description || '',

@@ -39,7 +39,7 @@ const RewardScreen = () => {
         try {
             const rewardId = uuid.v4() // Generate unique ID
             const newReward = {
-                rewardId: rewardId,
+                rewardId: rewardId as string,
                 name: rewardName,
                 description: rewardDescription,
                 cost: parseFloat(rewardCost),

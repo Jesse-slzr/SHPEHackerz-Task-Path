@@ -56,7 +56,7 @@ const KidScreen = () => {
             const parentUuid = auth.currentUser?.uid || '';
             const kidId = uuid.v4() // Generate unique ID
             const newKid = {
-                kidId: kidId,
+                kidId: kidId as string,
                 name: kidName,
                 age: parseFloat(kidAge) || 0,
                 coinCount: 0,

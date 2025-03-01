@@ -41,7 +41,7 @@ const TaskScreen = () => {
         try {
             const taskId = uuid.v4() // Generate unique ID
             const newTask = {
-                taskId: taskId,
+                taskId: taskId as string,
                 name: taskName,
                 description: taskDescription,
                 cost: parseFloat(taskCost),
