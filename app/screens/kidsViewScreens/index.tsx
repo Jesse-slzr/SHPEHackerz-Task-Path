@@ -3,18 +3,16 @@ import {
     View,
     Pressable,
     Text,
-    Image,
     ActivityIndicator,
     FlatList,
     StyleSheet,
 } from 'react-native';
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../FirebaseConfig';
 import { getDocs, collection, query, where } from 'firebase/firestore';
-import { faGear } from '@fortawesome/free-solid-svg-icons';
 import { useRouter, Link } from 'expo-router';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faCircleUser } from '@fortawesome/free-solid-svg-icons';
-import { getAuth } from 'firebase/auth';
+import { faGear, faCircleUser } from '@fortawesome/free-solid-svg-icons';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 interface Kid {
     docId: string;
@@ -30,42 +28,35 @@ const KidsSelectionScreen = () => {
     const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
-        fetchKids();
+        const auth = getAuth();
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is authenticated, fetch kids with valid UID
+                fetchKids(user.uid);
+            } else {
+                // User is not authenticated, set empty state
+                console.log('No authenticated user found');
+                setKids([]);
+                setLoading(false);
+            }
+        });
+
+        // Cleanup subscription on unmount
+        return () => unsubscribe();
     }, []);
 
-    // const fetchKids = async () => {
-    //     try {
-    //         const auth = getAuth();
-    //         const parentUuid = auth.currentUser?.uid || '';
-    //         const querySnapshot = await getDocs(query(collection(FIRESTORE_DB, 'Kids'), where('parentUuid', '==', parentUuid)));
-    //         const fetchedKids: Kid[] = querySnapshot.docs.map((doc) => ({
-    //             kidId: doc.data().kidId,
-    //             ...doc.data(),
-    //             docId: doc.id
-    //         } as Kid));
-    //         setKids(fetchedKids);
-    //     } catch (error) {
-    //         console.error('Error fetching kids:', error);
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
-
-    const fetchKids = async () => {
+    const fetchKids = async (parentUuid: string) => {
         try {
-            const auth = getAuth();
-            if (!auth.currentUser) {
-                console.error('User not authenticated');
-                setLoading(false);
-                return;
-            }
-            const parentUuid = auth.currentUser?.uid || '';
             if (!parentUuid) {
                 console.error('Invalid parentUuid:', parentUuid);
+                setKids([]);
                 setLoading(false);
                 return;
             }
-            const querySnapshot = await getDocs(query(collection(FIRESTORE_DB, 'Kids'), where('parentUuid', '==', parentUuid)));
+
+            const querySnapshot = await getDocs(
+                query(collection(FIRESTORE_DB, 'Kids'), where('parentUuid', '==', parentUuid))
+            );
             const fetchedKids: Kid[] = querySnapshot.docs.map((doc) => ({
                 kidId: doc.data().kidId,
                 ...doc.data(),
@@ -107,14 +98,11 @@ const KidsSelectionScreen = () => {
 
     return (
         <View style={styles.container}>
-            {/* Exit Button Section */}
-            {/* <Pressable
-                style={styles.exitButton}
-                onPress={() => router.push({pathname:'/screens/dashboardScreens'})}
+            <Pressable
+                onPress={() => router.push('/(auth)/SignOutKids')}
+                hitSlop={{ top: 40, bottom: 40, left: 40, right: 40 }}
+                style={styles.headerButton}
             >
-                <Text style={styles.exitButtonText}>Exit Kids View</Text>
-            </Pressable> */}
-            <Pressable onPress={() => router.push('/(auth)/SignOutKids')} hitSlop={{ top: 40, bottom: 40, left: 40, right: 40 }} style={styles.headerButton}>
                 <FontAwesomeIcon icon={faGear} size={24} color="black" />
             </Pressable>
 
