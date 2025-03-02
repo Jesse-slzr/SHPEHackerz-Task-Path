@@ -14,6 +14,7 @@ import React, { useEffect, useState } from 'react';
 import { collection, getDocs, addDoc, setDoc, query, where, onSnapshot } from 'firebase/firestore';
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../../FirebaseConfig';
 import uuid from 'react-native-uuid';
+import ConfettiCannon from 'react-native-confetti-cannon';
 
 interface Task {
     docId: string;
@@ -228,6 +229,7 @@ const KidScreen = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [modalVisible, setModalVisible] = useState<boolean>(false);
     const [selectedTask, setSelectedTask] = useState<Task & { timeLeft?: number | null } | null>(null);
+    const [showConfetti, setShowConfetti] = useState(false);
 
     useEffect(() => {
         const kidRef = collection(FIRESTORE_DB, 'Kids');
@@ -344,10 +346,19 @@ const KidScreen = () => {
                 );
 
                 await updateCoinCount(kidId, selectedTask.cost);
+                setShowConfetti(true); // Trigger confetti
+                setTimeout(() => {
+                    setShowConfetti(false); // Hide confetti after 2 seconds
+                    setModalVisible(false); // Close modal after confetti
+                    setSelectedTask(null);
+                }, 1000);
+            } else {
+                console.log('Task claim failed, closing modal...');
+                setModalVisible(false);
+                setSelectedTask(null);
             }
         } catch (error) {
             console.error('Error claiming task:', error);
-        } finally {
             setModalVisible(false);
             setSelectedTask(null);
         }
@@ -419,28 +430,34 @@ const KidScreen = () => {
             />
 
             {/* Claim Task Modal */}
+            {/* Updated Claim Task Modal */}
             <Modal visible={modalVisible} animationType="slide" transparent={true}>
                 <View style={styles.modalContainer}>
-                    <Text style={styles.modalClaimText}>
-                        Are you sure you want to claim this task!
-                    </Text>
-                    <Text style={styles.modalTaskText}>
-                        {selectedTask?.name}?
-                    </Text>
-                    <View style={styles.modalButtons}>
-                        <Pressable style={styles.modalButton} onPress={handleClaimTask}>
-                            <Text style={styles.modalButtonText}>Yes</Text>
-                        </Pressable>
-                        <Pressable
-                            style={styles.modalButton}
-                            onPress={() => {
-                                setModalVisible(false);
-                                setSelectedTask(null);
-                            }}
-                        >
-                            <Text style={styles.modalButtonText}>No</Text>
-                        </Pressable>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>
+                            🎉 Awesome Job! 🎉
+                        </Text>
+                        <Text style={styles.modalText}>
+                            Want to claim <Text style={styles.modalTaskName}>{selectedTask?.name}</Text> and grab your coins? 💰
+                        </Text>
+                        <View style={styles.modalButtons}>
+                            <Pressable style={[styles.modalButton, styles.yesButton]} onPress={handleClaimTask}>
+                                <Text style={styles.modalButtonText}>Yes! 🚀</Text>
+                            </Pressable>
+                            <Pressable style={[styles.modalButton, styles.noButton]} onPress={() => { setModalVisible(false); setSelectedTask(null); }}>
+                                <Text style={styles.modalButtonText}>Nah 😛</Text>
+                            </Pressable>
+                        </View>
                     </View>
+                    {showConfetti && (
+                        <ConfettiCannon
+                            count={100}
+                            origin={{ x: 150, y: -100 }}
+                            autoStart={true}
+                            fadeOut={true}
+                            explosionSpeed={300}
+                        />
+                    )}
                 </View>
             </Modal>
         </View>
@@ -602,38 +619,73 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Slightly darker overlay for contrast
     },
-    modalClaimText: { 
-        fontSize: 18,
-        marginBottom: 20,
-        textAlign: 'center',
-        color: '#fff'
+    modalContent: {
+        backgroundColor: '#A8D5BA', // Bright gold background
+        borderRadius: 20,
+        padding: 20,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 10,
+        borderWidth: 3,
+        borderColor: '#4CAF50',
+        width: '85%',
     },
-    modalTaskText: {
-        fontSize: 30,
-        marginBottom: 20,
-        textAlign: 'center',
-        color: '#fff',
+    modalTitle: {
+        fontSize: 28,
         fontWeight: 'bold',
+        color: '#333',
+        textAlign: 'center',
+        marginBottom: 10,
+    },
+    modalText: {
+        fontSize: 20,
+        color: '#666',
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    modalTaskName: {
+        fontWeight: 'bold',
+        color: '#2196F3',
     },
     modalButtons: {
         flexDirection: 'row',
-    },
-    modalButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
+        justifyContent: 'space-around',
+        width: '100%',
     },
     modalButton: {
-        backgroundColor: '#ccc',
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 5,
-        marginHorizontal: 10,
+        paddingVertical: 15,
+        paddingHorizontal: 30,
+        borderRadius: 15,
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 10
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+        borderWidth: 2,
+        borderColor: '#000'
+    },
+    yesButton: {
+        backgroundColor: '#4CAF50', // Lime green for "Yes"
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
+    },
+    noButton: {
+        backgroundColor: '#f44336', // Hot pink for "No"
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
+    },
+    modalButtonText: {
+        color: '#FFF',
+        fontSize: 20,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
     },
 });
 
