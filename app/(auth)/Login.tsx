@@ -97,7 +97,7 @@ const Login = () => {
     if (loading) {
         return (
         <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#0000ff" />
+            <ActivityIndicator size="large" color="#A8D5BA" />
             <Text>Loading...</Text>
         </View>
         );

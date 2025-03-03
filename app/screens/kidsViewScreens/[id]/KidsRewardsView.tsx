@@ -64,7 +64,7 @@ const addRewardCompletion = async (kidId: string, rewardId: string) => {
 
         return true;
     } catch (error) {
-        console.error('Error logging task completion:', error);
+        console.error('Error logging reward completion:', error);
         return false;
     }
 };
@@ -239,8 +239,8 @@ const KidsRewardsView = () => {
     if (loading) {
         return (
         <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#0000ff" />
-            <Text>Loading Kids...</Text>
+            <ActivityIndicator size="large" color="#A8D5BA" />
+            <Text>Loading Rewards...</Text>
         </View>
         );
     }

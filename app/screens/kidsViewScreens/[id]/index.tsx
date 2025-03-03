@@ -9,7 +9,7 @@ import {
     StyleSheet,
 } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faArrowLeft, faCircleUser } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faCircleUser, faStar as faStarSolid, faStar as faStarRegular } from '@fortawesome/free-solid-svg-icons';
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs, addDoc, setDoc, query, where, onSnapshot } from 'firebase/firestore';
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../../FirebaseConfig';
@@ -35,10 +35,11 @@ interface TaskCompletion {
     dateCompleted: Date;
     countupDuration?: number;
     countdownDuration?: number;
+    rating?: number;
 }
 
 // Function to add task completion to Firestore
-const addTaskCompletion = async (kidId: string, taskId: string, countupDuration?: number, countdownDuration?: number) => {
+const addTaskCompletion = async (kidId: string, taskId: string, countupDuration?: number, countdownDuration?: number, rating?: number) => {
     try {
         // Check if task is already completed for the kid
         const completionsRef = collection(FIRESTORE_DB, 'TaskCompletions');
@@ -63,15 +64,11 @@ const addTaskCompletion = async (kidId: string, taskId: string, countupDuration?
             dateCompleted: new Date(),
         };
 
-        if (countupDuration !== undefined) {
-            completionData.countupDuration = countupDuration;
-        }
-        if (countdownDuration !== undefined) {
-            completionData.countdownDuration = countdownDuration;
-        }
+        if (countupDuration !== undefined) completionData.countupDuration = countupDuration;
+        if (countdownDuration !== undefined) completionData.countdownDuration = countdownDuration;
+        if (rating !== undefined) completionData.rating = rating;
 
         await addDoc(completionsRef, completionData);
-
         return true;
     } catch (error) {
         console.error('Error logging task completion:', error);
@@ -225,9 +222,11 @@ const KidScreen = () => {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [completions, setCompletions] = useState<TaskCompletion[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-    const [modalVisible, setModalVisible] = useState<boolean>(false);
+    const [claimModalVisible, setClaimModalVisible] = useState<boolean>(false);
+    const [ratingModalVisible, setRatingModalVisible] = useState<boolean>(false);
     const [selectedTask, setSelectedTask] = useState<Task & { timeLeft?: number | null } | null>(null);
     const [showConfetti, setShowConfetti] = useState(false);
+    const [selectedRating, setSelectedRating] = useState<number | null>(null);
 
     useEffect(() => {
         const kidRef = collection(FIRESTORE_DB, 'Kids');
@@ -320,8 +319,30 @@ const KidScreen = () => {
         }
     };
 
-    const handleClaimTask = async () => {
-        if (!selectedTask ) return;
+    const handleClaimTask = () => {
+        if (!selectedTask) return;
+        setClaimModalVisible(true);
+    };
+
+    const handleConfirmClaim = async () => {
+        if (!selectedTask) return;
+
+        try {
+            setShowConfetti(true); 
+            setTimeout(() => {
+                setShowConfetti(false);
+                setClaimModalVisible(false);
+                setRatingModalVisible(true);
+            }, 2700);
+        } catch (error) {
+            console.error('Error initiating claim:', error);
+            setClaimModalVisible(false);
+            setSelectedTask(null);
+        }
+    };
+
+    const handleSubmitRating = async () => {
+        if (!selectedTask || selectedRating === null) return;
     
         try {
             const durationToRecord = // Recorded in seconds
@@ -333,7 +354,8 @@ const KidScreen = () => {
                 kidId,
                 selectedTask.taskId,
                 selectedTask.timerType === 'countup' ? durationToRecord ?? undefined  : undefined,
-                selectedTask.timerType === 'countdown' ? durationToRecord ?? undefined  : undefined
+                selectedTask.timerType === 'countdown' ? durationToRecord ?? undefined  : undefined,
+                selectedRating
             );
     
             if (success) {
@@ -344,28 +366,27 @@ const KidScreen = () => {
                 );
 
                 await updateCoinCount(kidId, selectedTask.cost);
-                setShowConfetti(true); // Trigger confetti
-                setTimeout(() => {
-                    setShowConfetti(false); // Hide confetti after 2 seconds
-                    setModalVisible(false); // Close modal after confetti
-                    setSelectedTask(null);
-                }, 1000);
-            } else {
-                console.log('Task claim failed, closing modal...');
-                setModalVisible(false);
+                setRatingModalVisible(false);
                 setSelectedTask(null);
+                setSelectedRating(null);
+            } else {
+                console.log('Task claim failed');
+                setRatingModalVisible(false);
+                setSelectedTask(null);
+                setSelectedRating(null);
             }
         } catch (error) {
-            console.error('Error claiming task:', error);
-            setModalVisible(false);
+            console.error('Error submitting rating:', error);
+            setRatingModalVisible(false);
             setSelectedTask(null);
+            setSelectedRating(null);
         }
     };    
 
     if (loading) {
         return (
         <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#0000ff" />
+            <ActivityIndicator size="large" color="#A8D5BA" />
             <Text>Loading Tasks...</Text>
         </View>
         );
@@ -422,14 +443,13 @@ const KidScreen = () => {
                         task={item}
                         completions={completions}
                         setSelectedTask={setSelectedTask}
-                        setModalVisible={setModalVisible}
+                        setModalVisible={setClaimModalVisible}
                     />
                 )}
             />
 
             {/* Claim Task Modal */}
-            {/* Updated Claim Task Modal */}
-            <Modal visible={modalVisible} animationType="slide" transparent={true}>
+            <Modal visible={claimModalVisible} animationType="slide" transparent={true}>
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>
@@ -439,23 +459,53 @@ const KidScreen = () => {
                             Want to claim <Text style={styles.modalTaskName}>{selectedTask?.name}</Text> and grab your coins? 💰
                         </Text>
                         <View style={styles.modalButtons}>
-                            <Pressable style={[styles.modalButton, styles.yesButton]} onPress={handleClaimTask}>
+                            <Pressable style={[styles.modalButton, styles.yesButton]} onPress={handleConfirmClaim}>
                                 <Text style={styles.modalButtonText}>Yes! 🚀</Text>
                             </Pressable>
-                            <Pressable style={[styles.modalButton, styles.noButton]} onPress={() => { setModalVisible(false); setSelectedTask(null); }}>
+                            <Pressable style={[styles.modalButton, styles.noButton]} onPress={() => { setClaimModalVisible(false); setSelectedTask(null); }}>
                                 <Text style={styles.modalButtonText}>Nah 😛</Text>
                             </Pressable>
                         </View>
+                        {showConfetti && (
+                            <ConfettiCannon
+                                count={100}
+                                origin={{ x: 150, y: -600 }}
+                                autoStart={true}
+                                fadeOut={true}
+                                explosionSpeed={500}
+                            />
+                        )}
                     </View>
-                    {showConfetti && (
-                        <ConfettiCannon
-                            count={100}
-                            origin={{ x: 150, y: -100 }}
-                            autoStart={true}
-                            fadeOut={true}
-                            explosionSpeed={300}
-                        />
-                    )}
+                </View>
+            </Modal>
+
+            {/* Rating Modal */}
+            <Modal visible={ratingModalVisible} animationType="slide" transparent={true}>
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Rate Your Task!</Text>
+                        <Text style={styles.modalText}>
+                            How did you feel about completing <Text style={styles.modalTaskName}>{selectedTask?.name}</Text>?
+                        </Text>
+                        <View style={styles.ratingContainer}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <Pressable key={star} onPress={() => setSelectedRating(star)}>
+                                    <FontAwesomeIcon
+                                        icon={star <= (selectedRating || 0) ? faStarSolid : faStarRegular}
+                                        size={30}
+                                        color={star <= (selectedRating || 0) ? '#FFD700' : '#ccc'}
+                                    />
+                                </Pressable>
+                            ))}
+                        </View>
+                        <Pressable
+                            style={[styles.modalButton, styles.submitButton, !selectedRating && styles.disabledButton]}
+                            onPress={handleSubmitRating}
+                            disabled={!selectedRating}
+                        >
+                            <Text style={styles.modalButtonText}>Submit Rating</Text>
+                        </Pressable>
+                    </View>
                 </View>
             </Modal>
         </View>
@@ -617,10 +667,10 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Slightly darker overlay for contrast
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
     },
     modalContent: {
-        backgroundColor: '#A8D5BA', // Bright gold background
+        backgroundColor: '#A8D5BA',
         borderRadius: 20,
         padding: 20,
         alignItems: 'center',
@@ -648,7 +698,7 @@ const styles = StyleSheet.create({
     },
     modalTaskName: {
         fontWeight: 'bold',
-        color: '#2196F3',
+        color: '#FFDF00',
     },
     modalButtons: {
         flexDirection: 'row',
@@ -670,20 +720,34 @@ const styles = StyleSheet.create({
         borderColor: '#000'
     },
     yesButton: {
-        backgroundColor: '#4CAF50', // Lime green for "Yes"
+        backgroundColor: '#4CAF50', 
         borderWidth: 2,
         borderColor: '#FFFFFF',
     },
     noButton: {
-        backgroundColor: '#f44336', // Hot pink for "No"
+        backgroundColor: '#f44336', 
         borderWidth: 2,
         borderColor: '#FFFFFF',
+    },
+    submitButton: {
+        backgroundColor: '#2196F3',
+        borderColor: '#FFFFFF',
+    },
+    disabledButton: {
+        backgroundColor: '#ccc',
+        borderColor: '#999',
     },
     modalButtonText: {
         color: '#FFF',
         fontSize: 20,
         fontWeight: 'bold',
         textTransform: 'uppercase',
+    },
+    ratingContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        width: '100%',
+        marginBottom: 20,
     },
 });
 

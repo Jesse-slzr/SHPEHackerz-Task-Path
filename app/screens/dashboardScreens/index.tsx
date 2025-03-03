@@ -326,13 +326,13 @@ const DashboardScreen = () => {
     if (loading) {
         return (
         <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#0000ff" />
-            <Text>Loading Tasks...</Text>
+            <ActivityIndicator size="large" color="#A8D5BA" />
+            <Text>Loading...</Text>
         </View>
         );
     }
 
-    return ( //Settings tab in the navigation dashboard
+    return (
         <View style={styles.container}>
             {/* Header with settings and navigation to kids view */}
             <View style={styles.header}>
