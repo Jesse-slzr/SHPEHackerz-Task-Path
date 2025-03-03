@@ -52,14 +52,14 @@ const Page = () => {
             <TouchableOpacity onPress={() => router.push('/screens/dashboardScreens')} style={styles.buttonContainer}>
                 <Text>Back to Dashboard</Text>
             </TouchableOpacity>
-	    <View style={styles.switchContainer}>
+	        <View style={styles.switchContainer}>
                 <Text style={[styles.switchText]}>Light Mode</Text>
                     <Switch
                         thumbColor="#fff"
                     />
                 <Text style={[styles.switchText]}>Dark Mode</Text>
             </View>
-	</View>
+	    </View>
 	);
 };
 

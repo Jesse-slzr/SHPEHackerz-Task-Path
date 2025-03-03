@@ -65,11 +65,9 @@ const addTaskCompletion = async (kidId: string, taskId: string, countupDuration?
 
         if (countupDuration !== undefined) {
             completionData.countupDuration = countupDuration;
-            console.log(`Saving countupDuration: ${countupDuration}`);
         }
         if (countdownDuration !== undefined) {
             completionData.countdownDuration = countdownDuration;
-            console.log(`Saving countdownDuration: ${countdownDuration}`);
         }
 
         await addDoc(completionsRef, completionData);
