@@ -1,16 +1,15 @@
 // KidScreen.tsx
-// KidScreen.tsx
-import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal,Alert,  KeyboardAvoidingView } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, Alert, KeyboardAvoidingView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { FontAwesome } from '@expo/vector-icons';
-import { faTasks, faChild, faGift, faHouse, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faTasks, faChild, faGift, faHouse, faPlus, faUndo } from '@fortawesome/free-solid-svg-icons';
 import { useRouter } from 'expo-router';
-import { FIREBASE_DB as FIRESTORE_DB} from '../../../FirebaseConfig';
+import { FIREBASE_DB as FIRESTORE_DB } from '../../../FirebaseConfig';
 import { query, where, getDocs, collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import uuid from 'react-native-uuid';
 import { getAuth } from 'firebase/auth';
-import {Swipeable, GestureHandlerRootView} from 'react-native-gesture-handler';
+import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 
 interface Kid {
     docId: string;
@@ -24,37 +23,39 @@ interface Kid {
 const KidScreen = () => {
     const [kidName, setKidName] = useState('');
     const [kidAge, setKidAge] = useState('');
-    const [kidCoinCount, setKidCoinCount] = useState('');
     const [kids, setKids] = useState<Kid[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [createKidModalVisible, setCreateKidModalVisible] = useState(false);
     const [selectedKid, setSelectedKid] = useState<Kid | null>(null);
     const router = useRouter();
     const [loading, setLoading] = useState<boolean>(true);
+    const [deletedKid, setDeletedKid] = useState<Kid | null>(null);
+    const [undoVisible, setUndoVisible] = useState(false);
+    const undoTimeout = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         fetchKids();
     }, []);
 
     const addKidToFirestore = async () => {
-        console.log("Attempting to add kid..."); // Debug log
-        if (kids.length >= 10) { // Check if the number of kids is already 10
-            console.log("Maximum number of kids reached."); // Debug log
-            Alert.alert("Sorry!", "The maximum number of children allowed is 10!"); // Display alert message
+        console.log("Attempting to add kid...");
+        if (kids.length >= 10) {
+            console.log("Maximum number of kids reached.");
+            Alert.alert("Sorry!", "The maximum number of children allowed is 10!");
             return;
         }
-        
+
         const age = parseFloat(kidAge);
-        if (age > 100) { // Check if the age is greater than 100
-            console.log("Age exceeds limit."); // Debug log
-            Alert.alert("Invalid Age", "Number exceeds Age Limit!"); // Display alert message
+        if (age > 100) {
+            console.log("Age exceeds limit.");
+            Alert.alert("Invalid Age", "Number exceeds Age Limit!");
             return;
         }
 
         try {
             const auth = getAuth();
             const parentUuid = auth.currentUser?.uid || '';
-            const kidId = uuid.v4() // Generate unique ID
+            const kidId = uuid.v4();
             const newKid = {
                 kidId: kidId as string,
                 name: kidName,
@@ -67,8 +68,7 @@ const KidScreen = () => {
             console.log("New kid added with ID: ", docRef.id);
             setKidName('');
             setKidAge('');
-            setKidCoinCount('');
-            setCreateKidModalVisible(false);   
+            setCreateKidModalVisible(false);
         } catch (error) {
             console.error("Error adding document: ", error);
         }
@@ -95,7 +95,7 @@ const KidScreen = () => {
         try {
             const kidRef = doc(FIRESTORE_DB, 'Kids', kid.docId);
             await updateDoc(kidRef, { name: updatedName, age: parseFloat(updatedAge) || 0 });
-            setKids((prevKids) => prevKids.map((kid) => 
+            setKids((prevKids) => prevKids.map((kid) =>
                 kid.kidId === kidId ? { ...kid, name: updatedName, age: parseFloat(updatedAge) || 0 } : kid
             ));
             setModalVisible(false);
@@ -110,13 +110,40 @@ const KidScreen = () => {
     const deleteKid = async (kid: Kid) => {
         try {
             const kidRef = doc(FIRESTORE_DB, 'Kids', kid.docId);
-            console.log("kidRef", kidRef);
             await deleteDoc(kidRef);
             setKids((prevKids) => prevKids.filter((prevKid) => prevKid.docId !== kid.docId));
             setSelectedKid(null);
             setModalVisible(false);
+            setDeletedKid(kid);
+            setUndoVisible(true);
+
+            if (undoTimeout.current) {
+                clearTimeout(undoTimeout.current);
+            }
+
+            undoTimeout.current = setTimeout(() => {
+                setUndoVisible(false);
+                setDeletedKid(null);
+            }, 6000);
+
         } catch (error) {
             console.error("Error deleting document: ", error);
+        }
+    };
+
+    const undoDelete = async () => {
+        if (deletedKid) {
+            try {
+                const docRef = await addDoc(collection(FIRESTORE_DB, 'Kids'), deletedKid);
+                setKids((prevKids) => [...prevKids, { ...deletedKid, docId: docRef.id }]);
+                setUndoVisible(false);
+                setDeletedKid(null);
+                if (undoTimeout.current) {
+                    clearTimeout(undoTimeout.current);
+                }
+            } catch (error) {
+                console.error("Error undoing delete: ", error);
+            }
         }
     };
 
@@ -127,7 +154,7 @@ const KidScreen = () => {
                 <Text style={styles.deleteText}>Delete</Text>
             </Pressable>
         );
-    
+
         return (
             <Swipeable renderRightActions={renderRightActions}>
                 <Pressable style={styles.kidItem} onPress={() => openKidModal(item)}>
@@ -156,132 +183,136 @@ const KidScreen = () => {
 
     if (loading) {
         return (
-        <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#A8D5BA" />
-            <Text>Loading...</Text>
-        </View>
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#A8D5BA" />
+                <Text>Loading...</Text>
+            </View>
         );
     }
 
     return (
         <GestureHandlerRootView style={styles.container}>
-        <KeyboardAvoidingView behavior="padding" style={styles.container}>
-            {/* Header with settings and navigation to kids view */}
-            <View style={styles.header}>
-                <Pressable onPress={() => router.push('../dashboardScreens')} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
-                    <FontAwesomeIcon icon={faHouse} size={24} color="black" />
-                </Pressable>
-            </View>
-
-            <Text style={styles.title}>Manage Kids</Text>
-            <FlatList
-                data={kids}
-                keyExtractor={(item) => item.kidId || item.docId}
-                renderItem={renderKid}
-            />
-            
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}>
-                <View style={styles.overlay}>
-                    <View style={styles.modalView}>
-                        <Pressable onPress={() => setModalVisible(false)} style={styles.closeXButton}>
-                            <FontAwesome name="close" size={24} color="black" />
-                        </Pressable>
-
-                        <Text style={styles.modalTitle}>Edit Kid</Text>
-
-                        <Text style={styles.modalSubTitle}>Name:</Text>
-                        <TextInput 
-                            style={styles.input} 
-                            placeholder="Edit Kid name" 
-                            placeholderTextColor="#333" 
-                            value={selectedKid ? selectedKid.name : ''} 
-                            onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, name: text }) as Kid | null)} 
-                        />
-
-                        <Text style={styles.modalSubTitle}>Age:</Text>
-                        <TextInput 
-                            style={styles.input} 
-                            placeholder="Enter kid's age"
-                            placeholderTextColor="#333" 
-                            keyboardType="numeric" 
-                            value={selectedKid ? String(selectedKid.age) : ''} 
-                            onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, age: parseInt(text.replace(/[^0-9]/g, ''), 10) }) as Kid | null)} 
-                        />
-
-                        <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
-                            <Text style={styles.textStyle}>Save</Text>
-                        </Pressable>
-                        <Pressable style={[styles.button, styles.buttonDelete]} onPress={handleDelete}>
-                            <Text style={styles.textStyle}>Delete</Text>
-                        </Pressable>
-                        <Pressable style={[styles.button, styles.buttonClose]} onPress={() => setModalVisible(false)}>
-                            <Text style={styles.textStyle}>Close</Text>
-                        </Pressable>
-                    </View>
+            <KeyboardAvoidingView behavior="padding" style={styles.container}>
+                <View style={styles.header}>
+                    <Pressable onPress={() => router.push('../dashboardScreens')} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                        <FontAwesomeIcon icon={faHouse} size={24} color="black" />
+                    </Pressable>
                 </View>
-            </Modal>
 
-            {/* Add Kid Button */}
-            <Pressable style={styles.plusButtonStyle} onPress={() => setCreateKidModalVisible(true)}>
-                <FontAwesome name="plus" size={12} color="black" />
-            </Pressable>
+                <Text style={styles.title}>Manage Kids</Text>
+                <FlatList
+                    data={kids}
+                    keyExtractor={(item) => item.kidId || item.docId}
+                    renderItem={renderKid}
+                />
 
-            {/* Create Kid Modal */}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={createKidModalVisible}
-                onRequestClose={() => setCreateKidModalVisible(false)}
-            >
-                <View style={styles.overlay}>
-                    <View style={styles.modalView}>
-                        <Pressable onPress={() => setCreateKidModalVisible(false)} style={styles.closeXButton}>
-                            <FontAwesome name="close" size={24} color="black" />
-                        </Pressable>
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={modalVisible}
+                    onRequestClose={() => setModalVisible(false)}>
+                    {modalVisible}
+                    <View style={styles.overlay}>
+                        <View style={styles.modalView}>
+                            <Pressable onPress={() => setModalVisible(false)} style={styles.closeXButton}>
+                                <FontAwesome name="close" size={24} color="black" />
+                            </Pressable>
 
-                        <Text style={styles.modalTitle}>Create Kid</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Kid Name"
-                            placeholderTextColor="#333"
-                            value={kidName}
-                            onChangeText={setKidName}
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Age"
-                            placeholderTextColor="#333"
-                            keyboardType="numeric"
-                            value={kidAge}
-                            onChangeText={setKidAge}
-                        />
-                        <Pressable style={styles.plusButtonStyle} onPress={addKidToFirestore}>
-                            <FontAwesome name="plus" size={12} color="black" />
-                        </Pressable>
-                        <Pressable style={styles.buttonClose} onPress={() => setCreateKidModalVisible(false)}>
-                            <Text>Close</Text>
-                        </Pressable>
+                            <Text style={styles.modalTitle}>Edit Kid</Text>
+
+                            <Text style={styles.modalSubTitle}>Name:</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Edit Kid name"
+                                placeholderTextColor="#333"
+                                value={selectedKid ? selectedKid.name : ''}
+                                onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, name: text }) as Kid | null)}
+                            />
+
+                            <Text style={styles.modalSubTitle}>Age:</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Enter kid's age"
+                                placeholderTextColor="#333"
+                                keyboardType="numeric"
+                                value={selectedKid ? String(selectedKid.age) : ''}
+                                onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, age: parseInt(text.replace(/[^0-9]/g, ''), 10) }) as Kid | null)}
+                            />
+
+                            <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
+                                <Text style={styles.textStyle}>Save</Text>
+                            </Pressable>
+                            <Pressable style={[styles.button, styles.buttonDelete]} onPress={handleDelete}>
+                                <Text style={styles.textStyle}>Delete</Text>
+                            </Pressable>
+                            <Pressable style={[styles.button, styles.buttonClose]} onPress={() => setModalVisible(false)}>
+                                <Text style={styles.textStyle}>Close</Text>
+                            </Pressable>
+                        </View>
                     </View>
-                </View>
-            </Modal>
+                </Modal>
 
-            {/* Bottom navigation with icons */}
-            <View style={styles.bottomNavigation}>
-                <Pressable onPress={() => router.push('/screens/dashboardScreens/TasksManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
-                    <FontAwesomeIcon icon={faTasks} size={24} color="black" />
+                <Pressable style={styles.plusButtonStyle} onPress={() => setCreateKidModalVisible(true)}>
+                    <FontAwesome name="plus" size={12} color="black" />
                 </Pressable>
-                <Pressable onPress={() => router.push('/screens/dashboardScreens/KidsManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
-                    <FontAwesomeIcon icon={faChild} size={24} color="black" />
-                </Pressable>
-                <Pressable onPress={() => router.push('/screens/dashboardScreens/RewardsManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
-                    <FontAwesomeIcon icon={faGift} size={24} color="black" />
-                </Pressable>
-            </View>
-        </KeyboardAvoidingView>
+
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={createKidModalVisible}
+                    onRequestClose={() => setCreateKidModalVisible(false)}
+                >
+                    <View style={styles.overlay}>
+                        <View style={styles.modalView}>
+                            <Pressable onPress={() => setCreateKidModalVisible(false)} style={styles.closeXButton}>
+                                <FontAwesome name="close" size={24} color="black" />
+                            </Pressable>
+
+                            <Text style={styles.modalTitle}>Create Kid</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Kid Name"
+                                placeholderTextColor="#333"
+                                value={kidName}
+                                onChangeText={setKidName}
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Age"
+                                placeholderTextColor="#333"
+                                keyboardType="numeric"
+                                value={kidAge}
+                                onChangeText={setKidAge}
+                            />
+                            <Pressable style={styles.plusButtonStyle} onPress={addKidToFirestore}>
+                                <FontAwesome name="plus" size={12} color="black" />
+                            </Pressable>
+                            <Pressable style={styles.buttonClose} onPress={() => setCreateKidModalVisible(false)}>
+                                <Text>Close</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </Modal>
+
+                {undoVisible && deletedKid && (
+                    <Pressable style={styles.undoButton} onPress={undoDelete}>
+                        <FontAwesomeIcon icon={faUndo} size={24} color="white" />
+                        <Text style={styles.undoText}>Undo Delete</Text>
+                    </Pressable>
+                )}
+
+                <View style={styles.bottomNavigation}>
+                    <Pressable onPress={() => router.push('/screens/dashboardScreens/TasksManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                        <FontAwesomeIcon icon={faTasks} size={24} color="black" />
+                    </Pressable>
+                    <Pressable onPress={() => router.push('/screens/dashboardScreens/KidsManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                        <FontAwesomeIcon icon={faChild} size={24} color="black" />
+                    </Pressable>
+                    <Pressable onPress={() => router.push('/screens/dashboardScreens/RewardsManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                        <FontAwesomeIcon icon={faGift} size={24} color="black" />
+                    </Pressable>
+                </View>
+            </KeyboardAvoidingView>
         </GestureHandlerRootView>
     );
 };
@@ -336,7 +367,7 @@ const styles = StyleSheet.create({
     },
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)', // Dark overlay for better contrast
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -386,7 +417,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     buttonSave: {
-        backgroundColor: '#2196F3' 
+        backgroundColor: '#2196F3'
     },
     buttonDelete: {
         backgroundColor: '#FF3B30'
@@ -421,19 +452,32 @@ const styles = StyleSheet.create({
         paddingBottom: 48,
     },
 
-    deleteButton: {  
+    deleteButton: {
         backgroundColor: '#FF3B30',
         justifyContent: 'center',
         alignItems: 'center',
         width: 80,
-        height: '100%', 
+        height: '100%',
     },
-    deleteText: { 
+    deleteText: {
         color: 'white',
         fontWeight: 'bold',
         fontSize: 14,
     },
-    
+    undoButton: {
+        position: 'absolute',
+        bottom: 80,
+        alignSelf: 'center',
+        backgroundColor: '#4CAF50',
+        padding: 10,
+        borderRadius: 5,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    undoText: {
+        color: 'white',
+        marginLeft: 5,
+    },
 });
 
 export default KidScreen;
