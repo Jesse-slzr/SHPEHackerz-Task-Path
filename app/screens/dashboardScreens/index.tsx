@@ -75,7 +75,7 @@ const DashboardScreen = () => {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [taskCompletions, setTaskCompletions] = useState<TaskCompletion[]>([]);
     const [taskCompletionData, setTaskCompletionData] = useState<TaskCompletionData[]>([]);
-    const [modalVisible, setModalVisible] = useState(false);
+    // const [modalVisible, setModalVisible] = useState(false);
 
     useEffect(() => {
         // Subscribe to real-time updates from Firestore
@@ -117,12 +117,16 @@ const DashboardScreen = () => {
     };
 
     const handleGenerateReport = () => {
-        fetchCompletedTasks(); //gets the latest data
-        setModalVisible(true);
-    };
-
-    const closeModal = () => {
-        setModalVisible(false);
+        fetchCompletedTasks(); // Get the latest data
+        router.push({
+            pathname: '/screens/dashboardScreens/report',
+            params: {
+                kidId: selectedKid?.kidId,
+                kidName: selectedKid?.name,
+                startOfWeek: selectedWeek.startOfWeek.toISOString(),
+                endOfWeek: selectedWeek.endOfWeek.toISOString(),
+            },
+        });
     };
     
     // Fetch kids from Firestore based on the logged-in parent's ID
@@ -418,9 +422,8 @@ const DashboardScreen = () => {
                     }}
                     style={styles.chart}
                 />
-                <Pressable style={styles.reportButton}
-                onPress={() => setModalVisible(true)}>
-                    <Text style={styles.reportButtonText}>Generate Report</Text>
+                <Pressable style={styles.reportButton} onPress={handleGenerateReport}>
+                    <Text style={styles.reportButtonText}>Show Full Report</Text>
                 </Pressable>
             </View>
             
@@ -445,30 +448,6 @@ const DashboardScreen = () => {
                     <FontAwesomeIcon icon={faGift} size={24} color="black" />
                 </Pressable>
             </View>
-
-            {/* Modal for Generating Report */}
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={closeModal}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Completed Tasks Report</Text>
-                        {taskCompletionData.length > 0 ? (
-                            taskCompletionData.map((task) => (
-                                <View key={task.taskCompletionDataId} style={styles.taskReportItem}>
-                                    <Text style={styles.taskReportTitle}>{task.taskName}</Text>
-                                </View>
-                            ))
-                        ) : (
-                            <Text style={styles.noCompletedTasks}>None completed.</Text>
-                        )}
-                        <Button title="Close" onPress={closeModal} />
-                    </View>
-                </View>
-            </Modal>
         </View>
     );
 };
@@ -485,7 +464,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#A8D5BA',
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center' },
+        alignItems: 'center' 
+    },
     headerButton: {
         padding: 10
     },
@@ -588,9 +568,17 @@ const styles = StyleSheet.create({
     reportButton: {
         marginTop: 10,
         padding: 5,
-        backgroundColor:
-        '#A8D5BA',
-        borderRadius: 15,
+        borderWidth: 1,
+        backgroundColor: '#fff',
+        borderColor: '#A8D5BA',
+        elevation: 2,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        borderBottomWidth: 3,
+        borderBottomColor: '#A8D5BA',
+        borderRightWidth: 4,
+        borderRightColor: '#A8D5BA',
+        borderRadius: 20,
         width: '35%',
         alignSelf: 'center'
     },
@@ -648,38 +636,6 @@ const styles = StyleSheet.create({
         padding: 16,
         paddingBottom: 48,
     },
-    modalContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    },
-    modalContent: {
-        width: 300,
-        padding: 20,
-        backgroundColor: 'white',
-        borderRadius: 10,
-        alignItems: 'center',
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 10,
-    },
-    modalText: {
-        fontSize: 16,
-        marginBottom: 20,
-    },
-    taskReportItem: {
-        marginBottom: 10,
-    },
-    taskReportTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    taskReportDetail: {
-        fontSize: 16,
-    }
 });
 
 export default DashboardScreen;
