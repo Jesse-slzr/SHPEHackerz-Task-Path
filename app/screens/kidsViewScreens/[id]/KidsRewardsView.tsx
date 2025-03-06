@@ -299,25 +299,25 @@ const KidsRewardsView = () => {
             {/* Claim Task Modal */}
             <Modal visible={modalVisible} animationType="slide" transparent={true}>
                 <View style={styles.modalContainer}>
-                    <Text style={styles.modalClaimText}>
-                        Are you sure you want to redeem the REWARD!
-                    </Text>
-                    <Text style={styles.modalRewardText}>
-                        {selectedReward?.name}?
-                    </Text>
-                    <View style={styles.modalButtons}>
-                        <Pressable style={styles.modalButton} onPress={handleClaimReward}>
-                            <Text style={styles.modalButtonText}>Yes</Text>
-                        </Pressable>
-                        <Pressable
-                            style={styles.modalButton}
-                            onPress={() => {
-                                setModalVisible(false);
-                                setSelectedReward(null);
-                            }}
-                        >
-                            <Text style={styles.modalButtonText}>No</Text>
-                        </Pressable>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>🎉 Great Choice! 🎉</Text>
+                        <Text style={styles.modalClaimText}>
+                            Want to redeem <Text style={styles.modalRewardName}>{selectedReward?.name}</Text> for {selectedReward?.cost} coins? 💰
+                        </Text>
+                        <View style={styles.modalButtons}>
+                            <Pressable style={[styles.modalButton, styles.yesButton]} onPress={handleClaimReward}>
+                                <Text style={styles.modalButtonText}>Yes!</Text>
+                            </Pressable>
+                            <Pressable
+                                style={[styles.modalButton, styles.noButton]}
+                                onPress={() => {
+                                    setModalVisible(false);
+                                    setSelectedReward(null);
+                                }}
+                            >
+                                <Text style={styles.modalButtonText}>Nah</Text>
+                            </Pressable>
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -449,11 +449,36 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: 'rgba(0, 0, 0, 0.7)',
     },
-    modalClaimText: { 
-        fontSize: 18,
-        marginBottom: 20,
+    modalContent: {
+        backgroundColor: '#A8D5BA',
+        borderRadius: 20,
+        padding: 20,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 10,
+        borderWidth: 3,
+        borderColor: '#4CAF50',
+        width: '85%',
+    },
+    modalTitle: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#333',
         textAlign: 'center',
-        color: '#fff'
+        marginBottom: 10,
+    },
+    modalClaimText: { 
+        fontSize: 20,
+        color: '#666',
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    modalRewardName: {
+        fontWeight: 'bold',
+        color: '#FFF',
     },
     modalRewardText: {
         fontSize: 30,
@@ -464,21 +489,36 @@ const styles = StyleSheet.create({
     },
     modalButtons: {
         flexDirection: 'row',
+        justifyContent: 'space-around',
+        width: '100%',
+    },
+    modalButton: {
+        paddingVertical: 15,
+        paddingHorizontal: 30,
+        borderRadius: 15,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+        borderWidth: 2,
+        borderColor: '#000',
+    },
+    yesButton: {
+        backgroundColor: '#4CAF50',
+        borderColor: '#FFFFFF',
+    },
+    noButton: {
+        backgroundColor: '#f44336',
+        borderColor: '#FFFFFF',
     },
     modalButtonText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: 20,
         fontWeight: 'bold',
-    },
-    modalButton: {
-        backgroundColor: '#ccc',
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 5,
-        marginHorizontal: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 10
+        textTransform: 'uppercase',
     },
 });
 

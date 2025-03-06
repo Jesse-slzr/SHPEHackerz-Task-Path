@@ -460,10 +460,10 @@ const KidScreen = () => {
                         </Text>
                         <View style={styles.modalButtons}>
                             <Pressable style={[styles.modalButton, styles.yesButton]} onPress={handleConfirmClaim}>
-                                <Text style={styles.modalButtonText}>Yes! 🚀</Text>
+                                <Text style={styles.modalButtonText}>Yes!</Text>
                             </Pressable>
                             <Pressable style={[styles.modalButton, styles.noButton]} onPress={() => { setClaimModalVisible(false); setSelectedTask(null); }}>
-                                <Text style={styles.modalButtonText}>Nah 😛</Text>
+                                <Text style={styles.modalButtonText}>Nah</Text>
                             </Pressable>
                         </View>
                         {showConfetti && (
@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
     },
     modalTaskName: {
         fontWeight: 'bold',
-        color: '#FFDF00',
+        color: '#FFF',
     },
     modalButtons: {
         flexDirection: 'row',
