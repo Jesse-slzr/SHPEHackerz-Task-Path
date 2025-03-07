@@ -4,16 +4,20 @@ import {
     TouchableOpacity,
     StyleSheet,
     Image,
-    Switch
+    Switch,
+    Modal
 } from 'react-native';
 import { useEffect, useState } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { FIREBASE_AUTH } from '../../FirebaseConfig';
 import { useRouter } from 'expo-router';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faSignOutAlt, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 
 
 const Page = () => {
     const [user, setUser] = useState<User | null>(null);
+    const [signOutModalVisible, setSignOutModalVisible] = useState(false);
     const router = useRouter();
 
     // Check if the user is logged in
@@ -44,13 +48,15 @@ const Page = () => {
             />
             <Text style={[styles.mainText]}>Logged in as {user?.email}</Text>
             <TouchableOpacity style={[styles.buttonContainer]}>
-                <Text>Profile</Text>
+                <Text style={[styles.buttonText]}>Profile</Text>
             </TouchableOpacity>
-			<TouchableOpacity onPress={handleSignOut} style={[styles.buttonContainer]}>
-                <Text>Sign out</Text>
+			<TouchableOpacity onPress={() => setSignOutModalVisible(true)} style={[styles.buttonContainer]}>
+                <FontAwesomeIcon icon={faSignOutAlt} size={24} color="#f44336"/>
+                <Text style={styles.buttonText}>Sign out</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push('/screens/dashboardScreens')} style={styles.buttonContainer}>
-                <Text>Back to Dashboard</Text>
+                <FontAwesomeIcon icon={faArrowLeft} size={24} color="#A8D5BA" />
+                <Text style={styles.buttonText}>Back to Dashboard</Text>
             </TouchableOpacity>
 	        <View style={styles.switchContainer}>
                 <Text style={[styles.switchText]}>Light Mode</Text>
@@ -59,6 +65,35 @@ const Page = () => {
                     />
                 <Text style={[styles.switchText]}>Dark Mode</Text>
             </View>
+            <Modal
+                visible={signOutModalVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setSignOutModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Confirm Sign Out</Text>
+                        <Text style={styles.modalText}>
+                            Are you sure you want to sign out? You will need to log in again to access Parent View or Kids View.
+                        </Text>
+                        <View style={styles.modalButtonRow}>
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.cancelButton]}
+                                onPress={() => setSignOutModalVisible(false)}
+                            >
+                                <Text style={styles.modalButtonText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.confirmButton]}
+                                onPress={handleSignOut}
+                            >
+                                <Text style={styles.modalButtonText}>Sign Out</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 	    </View>
 	);
 };
@@ -97,19 +132,77 @@ const styles = StyleSheet.create({
     },
     buttonContainer: {
         flexDirection: 'row',
-        marginVertical: 10,
-        borderRadius: 10,
-        backgroundColor: '#FFFFFF',
-        borderWidth: 1,
+        alignItems: 'center',
         padding: 15,
+        borderRadius: 10,
+        marginVertical: 10,
+        borderWidth: 2,
         borderColor: '#A8D5BA',
         borderBottomWidth: 10,
         borderRightWidth: 5,
+        width: '80%',
+        alignSelf: 'center',
+        elevation: 3,
+        backgroundColor: '#fff',
+        
+    },
+    buttonText: {
+        fontSize: 18,
+        fontWeight: '500',
+        marginLeft: 15,
+        color: '#333',
+    },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: 'center',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '50%',
-        alignSelf: 'center'
-    }
+        backgroundColor: 'rgba(0, 0, 0, 0.5)', // Slightly lighter overlay
+    },
+    modalContent: {
+        width: '85%',
+        padding: 20,
+        borderRadius: 10,
+        backgroundColor: '#fff',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#A8D5BA',
+        elevation: 5,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: 15,
+    },
+    modalText: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    modalButtonRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        width: '100%',
+    },
+    modalButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 25,
+        borderRadius: 8,
+        alignItems: 'center',
+        minWidth: 100,
+    },
+    confirmButton: {
+        backgroundColor: '#4CAF50',
+    },
+    cancelButton: {
+        backgroundColor: '#f44336',
+    },
+    modalButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
 });
 
 export default Page;
