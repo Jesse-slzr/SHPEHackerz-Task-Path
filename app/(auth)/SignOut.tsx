@@ -6,20 +6,18 @@ import {
     Image,
     Switch
 } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { FIREBASE_AUTH } from '../../FirebaseConfig';
 import { useRouter } from 'expo-router';
+import { darkContext } from '../darkContext';
+import DarkProvider from '../darkContext';
 
 const Page = () => {
     const [user, setUser] = useState<User | null>(null);
-    const [isDark, setIsDark] = useState(true);
     const router = useRouter();
-    const mainTextStyle = isDark === false ? styles.lightMain : styles.darkMain;
-    const switchTextStyle = isDark === false ? styles.lightSwitch : styles.darkSwitch;
-    const buttonStyle = isDark === false ? styles.lightButton : styles.darkButton;
-    const buttonTextStyle = isDark === false ? styles.lightBText : styles.darkBText;
-    const bgStyle = isDark === false ? styles.lightBG : styles.darkBG;
+    const isDark = useContext(darkContext);
+    const toggleDark = useContext(darkContext);
 
     // Check if the user is logged in
 	useEffect(() => {
@@ -40,31 +38,33 @@ const Page = () => {
     };
 
 	return (
-            <View style={bgStyle}>
+        <DarkProvider>
+            <View style={isDark === "light" ? styles.lightBG : styles.darkBG}>
                 <Image
                     source={require('@/assets/images/kel.png')}
                     style={styles.profileImage}
                 />
-                <Text style={[styles.mainText, mainTextStyle]}>Logged in as {user?.email}</Text>
-                <TouchableOpacity style={[styles.button, buttonStyle]}>
-                    <Text style={buttonTextStyle}>Profile</Text>
+                <Text style={[styles.mainText, isDark === "light" ? styles.lightMain : styles.darkMain]}>Logged in as {user?.email}</Text>
+                <TouchableOpacity style={[styles.button, isDark === "light" ? styles.lightButton : styles.darkButton]}>
+                    <Text style={isDark === "light" ? styles.lightBText : styles.darkBText}>Profile</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={handleSignOut} style={[styles.button, buttonStyle]}>
-                    <Text style={buttonTextStyle}>Sign out</Text>
+                <TouchableOpacity onPress={handleSignOut} style={[styles.button, isDark ==="light" ? styles.lightButton : styles.darkButton]}>
+                    <Text style={isDark === "light" ? styles.lightBText : styles.darkBText}>Sign out</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => router.push('/screens/dashboardScreens')} style={[styles.button, buttonStyle]}>
-                    <Text style={buttonTextStyle}>Back to Dashboard</Text>
+                <TouchableOpacity onPress={() => router.push('/screens/dashboardScreens')} style={[styles.button, isDark ? styles.lightButton : styles.darkButton]}>
+                    <Text style={isDark ? styles.lightBText : styles.darkBText}>Back to Dashboard</Text>
                 </TouchableOpacity>
             <View style={styles.switchContainer}>
-                <Text style={[styles.switchText, switchTextStyle]}>Light Mode</Text>
+                <Text style={[styles.switchText, isDark ? styles.lightSwitch : styles.darkSwitch]}>Dark Mode</Text>
                     <Switch
                         value={isDark}
-                        onValueChange={setIsDark}
+                        onValueChange={toggleDark}
                         thumbColor="#fff"
                     />
-                <Text style={[styles.switchText, switchTextStyle]}>Dark Mode</Text>
+                <Text style={[styles.switchText, isDark ? styles.lightSwitch : styles.darkSwitch]}>Light Mode</Text>
             </View>
             </View>
+        </DarkProvider>
 	);
 };
 
@@ -107,10 +107,6 @@ const styles = StyleSheet.create({
     },
     darkSwitch: {
         color: '#FFFFFF'
-    },
-    highlightText: {
-        fontWeight: 'bold',
-        color: '#000', // Highlight color (red for Kids, green for Parent)
     },
     button: {
         flexDirection: 'row',
