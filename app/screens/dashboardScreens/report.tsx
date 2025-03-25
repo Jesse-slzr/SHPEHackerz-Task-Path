@@ -21,7 +21,7 @@ interface Task {
     name: string;
     description: string;
     cost: number;
-    completed: boolean;
+    childId: string;
     duration: number;
     timerType: 'countdown' | 'countup';
 }
@@ -31,10 +31,16 @@ interface TaskCompletion {
     taskCompletionId: string;
     kidId: string;
     taskId: string;
+    name: string;
+    description: string;
+    cost: number;
+    duration: number;
+    timerType: 'countdown' | 'countup';
     dateCompleted: Date;
     countupDuration?: number;
     countdownDuration?: number;
     rating?: number;
+    taskRemoved?: boolean;
 }
 
 const Report = () => {
@@ -107,17 +113,14 @@ const Report = () => {
         return isWithinRange;
     });
 
-    const enrichedData = filteredCompletions.map((completion) => {
-        const task = tasks.find((t) => t.taskId === completion.taskId);
-        return {
-            ...completion,
-            taskName: task?.name || 'Unknown Task',
-            taskDescription: task?.description || '',
-            taskCost: task?.cost || 0,
-            duration: completion.countupDuration || completion.countdownDuration || (task ? task.duration * 60 : 0),
-            rating: completion.rating || 0,
-        };
-    });
+    const enrichedData = filteredCompletions.map((completion) => ({
+        ...completion,
+        taskName: completion.name, // USE DIRECTLY FROM TASKCOMPLETION
+        taskDescription: completion.description,
+        taskCost: completion.cost,
+        duration: completion.countupDuration || completion.countdownDuration || (completion.duration * 60), // USE COMPLETION DATA FIRST
+        rating: completion.rating || 0,
+    }));
 
     // Bar Chart: Tasks per Day
     const taskDataForWeek = Array(7).fill(0);
@@ -188,9 +191,10 @@ const Report = () => {
                 <Text style={styles.sectionTitle}>Tasks Completed by Day</Text>
                 <BarChart
                     data={barChartData}
-                    width={Dimensions.get('window').width - 40}
+                    width={Dimensions.get('window').width - 30}
                     height={220}
-                    fromNumber={Math.max(...taskDataForWeek, 5)}
+                    fromZero
+                    fromNumber={Math.max(...taskDataForWeek) > 4 ? Math.max(...taskDataForWeek) : 4 }
                     yAxisLabel=""
                     yAxisSuffix=""
                     chartConfig={{

@@ -6,7 +6,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { faTasks, faChild, faGift, faHouse, faPlus} from '@fortawesome/free-solid-svg-icons';
 import { useRouter } from 'expo-router';
 import { FIREBASE_DB as FIRESTORE_DB} from '../../../FirebaseConfig';
-import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc, query, where } from 'firebase/firestore';
 import uuid from 'react-native-uuid';
 import {Swipeable, GestureHandlerRootView,} from 'react-native-gesture-handler';
 
@@ -16,7 +16,6 @@ interface Task {
     name: string;
     description: string;
     cost: number;
-    completed: boolean;
     childId: string;
     duration: number;
     timerType: 'countdown' | 'countup';
@@ -47,7 +46,6 @@ const TaskScreen = () => {
                 name: taskName,
                 description: taskDescription,
                 cost: parseFloat(taskCost) || 0,
-                completed: false,
                 childId: "",
                 duration: timerType === 'countdown' ? parseFloat(taskDuration) || 0 : 0,
                 timerType
@@ -83,7 +81,15 @@ const TaskScreen = () => {
         }
     };
 
-    const updateTask = async (task: Task,taskId: string, updatedName: string, updatedDescription: string, updatedCost: string, updatedDuration: string, updatedTimerType: 'countdown' | 'countup') => {
+    const updateTask = async (
+        task: Task,
+        taskId: string,
+        updatedName: string,
+        updatedDescription: string,
+        updatedCost: string,
+        updatedDuration: string,
+        updatedTimerType: 'countdown' | 'countup'
+    ) => {
         try {
             const taskRef = doc(FIRESTORE_DB, 'Tasks', task.docId);
             const updatedDurationValue = updatedTimerType === 'countdown' ? parseFloat(updatedDuration) || 0 : 0;
@@ -112,6 +118,18 @@ const TaskScreen = () => {
         try {
             const taskRef = doc(FIRESTORE_DB, 'Tasks', task.docId);
             await deleteDoc(taskRef);
+
+            const completionsRef = collection(FIRESTORE_DB, 'TaskCompletions');
+            const completionQuery = query(completionsRef, where('taskId', '==', task.taskId));
+            const completionSnapshot = await getDocs(completionQuery);
+
+            // Update respective tasks completions with taskRemoved: true
+            const updatePromises = completionSnapshot.docs.map(async (completionDoc) => {
+                const completionRef = doc(FIRESTORE_DB, 'TaskCompletions', completionDoc.id);
+                await updateDoc(completionRef, { taskRemoved: true });
+            });
+            await Promise.all(updatePromises);
+
             setTasks((prevTasks) => prevTasks.filter((prevTask) => prevTask.docId !== task.docId));
             setModalVisible(false);
             setSelectedTask(null);

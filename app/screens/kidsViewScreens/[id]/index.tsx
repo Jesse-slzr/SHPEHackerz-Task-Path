@@ -22,37 +22,44 @@ interface Task {
     name: string;
     description: string;
     cost: number;
-    completed: boolean;
     duration: number;
     timerType: 'countdown' | 'countup';
 }
 
-interface TaskCompletion {
+interface TaskCompletion extends Task{
     docId: string;
     taskCompletionId: string;
     kidId: string;
-    taskId: string;
     dateCompleted: Date;
     countupDuration?: number;
     countdownDuration?: number;
     rating?: number;
+    taskRemoved?: boolean;
 }
 
 // Function to add task completion to Firestore
-const addTaskCompletion = async (kidId: string, taskId: string, countupDuration?: number, countdownDuration?: number, rating?: number) => {
+const addTaskCompletion = async (
+    kidId: string,
+    task: Task,
+    countupDuration?: number,
+    countdownDuration?: number,
+    rating?: number,
+    taskRemoved: boolean = false
+) => {
     try {
         // Check if task is already completed for the kid
         const completionsRef = collection(FIRESTORE_DB, 'TaskCompletions');
         const completionQuery = query(
             completionsRef,
             where('kidId', '==', kidId),
-            where('taskId', '==', taskId)
+            where('taskId', '==', task.taskId)
         );
         const existingCompletions = await getDocs(completionQuery);
 
+        // If task is already completed, don't add a new entry
         if (!existingCompletions.empty) {
             console.log('Task already completed!');
-            return false; // Avoid duplicate entries
+            return false;
         }
 
         // Add new task completion
@@ -60,8 +67,14 @@ const addTaskCompletion = async (kidId: string, taskId: string, countupDuration?
         const completionData: Omit<TaskCompletion, 'docId'> = {
             taskCompletionId: generatedId as string,
             kidId,
-            taskId,
             dateCompleted: new Date(),
+            taskId: task.taskId,
+            name: task.name,
+            description: task.description,
+            cost: task.cost,
+            duration: task.duration,
+            timerType: task.timerType,
+            taskRemoved,
         };
 
         if (countupDuration !== undefined) completionData.countupDuration = countupDuration;
@@ -83,7 +96,7 @@ const TaskCard: React.FC<{
     setSelectedTask: React.Dispatch<React.SetStateAction<Task & { timeLeft?: number | null } | null>>;
     setModalVisible: React.Dispatch<React.SetStateAction<boolean>>;
 }> = ({ task, completions, setSelectedTask, setModalVisible }) => {
-    const [timeLeft, setTimeLeft] = useState<number | null>(null); // Countdown starts at duration, count-up at 0
+    const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [isFinished, setIsFinished] = useState(false);
     const [hasStarted, setHasStarted] = useState(false);
@@ -133,7 +146,8 @@ const TaskCard: React.FC<{
     };
 
     // Check if the task is completed by the kid
-    const isCompleted = completions.some((completion) => completion.taskId === task.taskId);
+    const completion = completions.find((c) => c.taskId === task.taskId);
+    const isCompleted = !!completion && !completion.taskRemoved;
 
     return (
         <View style={styles.taskCard}>
@@ -262,18 +276,12 @@ const KidScreen = () => {
     
                 const fetchedCompletions: TaskCompletion[] = completionsSnapshot.docs.map((doc) => ({
                     taskCompletionId: doc.data().taskCompletionId,
-                    ...doc.data(),
+                    taskRemoved: doc.data().taskRemoved ?? false,
                     docId: doc.id,
+                    ...doc.data(),
                 } as TaskCompletion));
     
-                // Map completed status to tasks
-                const completedTaskIds = fetchedCompletions.map((completion) => completion.taskId);
-                const updatedTasks = fetchedTasks.map((task) => ({
-                    ...task,
-                    completed: completedTaskIds.includes(task.taskId),
-                }));
-    
-                setTasks(updatedTasks);
+                setTasks(fetchedTasks);
                 setCompletions(fetchedCompletions);
             } catch (error) {
                 console.error("Error fetching tasks or completions:", error);
@@ -292,6 +300,7 @@ const KidScreen = () => {
         const unsubscribe = onSnapshot(completionsQuery, (snapshot) => {
             const fetchedCompletions: TaskCompletion[] = snapshot.docs.map((doc) => ({
                 taskCompletionId: doc.data().taskCompletionId,
+                taskRemoved: doc.data().taskRemoved ?? false,
                 ...doc.data(),
                 docId: doc.id,
             } as TaskCompletion));
@@ -352,10 +361,11 @@ const KidScreen = () => {
 
             const success = await addTaskCompletion(
                 kidId,
-                selectedTask.taskId,
+                selectedTask,
                 selectedTask.timerType === 'countup' ? durationToRecord ?? undefined  : undefined,
                 selectedTask.timerType === 'countdown' ? durationToRecord ?? undefined  : undefined,
-                selectedRating
+                selectedRating,
+                false
             );
     
             if (success) {

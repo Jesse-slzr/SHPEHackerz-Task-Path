@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../FirebaseConfig';
-import { collection, onSnapshot, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { 
     View, 
     Text, 
@@ -10,8 +10,6 @@ import {
     Pressable, 
     Dimensions, 
     StyleSheet,
-    Modal,
-    Button 
 } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faGear, faTasks, faChild, faGift } from '@fortawesome/free-solid-svg-icons';
@@ -36,8 +34,9 @@ interface Task {
     name: string;
     description: string;
     cost: number;
-    completed: boolean;
-    date: string;
+    childId: string;
+    duration: number;
+    timerType: 'countdown' | 'countup';
 }
 
 interface TaskCompletion {
@@ -45,19 +44,16 @@ interface TaskCompletion {
     taskCompletionId: string;
     kidId: string;
     taskId: string;
+    name: string;
+    description: string;
+    cost: number;
+    duration: number;
+    timerType: 'countdown' | 'countup';
     dateCompleted: Date;
-}
-
-interface TaskCompletionData {
-    taskCompletionDataId: string;
-    kidId: string;
-    taskId: string;
-    taskName: string;
-    taskDescription: string;
-    taskCost: number;
-    taskCompleted: boolean;
-    dateCompleted: Date;
-    docId: string;
+    countupDuration?: number;
+    countdownDuration?: number;
+    rating?: number;
+    taskRemoved?: boolean;
 }
   
 interface Week {
@@ -74,8 +70,6 @@ const DashboardScreen = () => {
     const [selectedWeek, setSelectedWeek] = useState<Week>({ label: 'This Week', startOfWeek: new Date(), endOfWeek: new Date() });
     const [tasks, setTasks] = useState<Task[]>([]);
     const [taskCompletions, setTaskCompletions] = useState<TaskCompletion[]>([]);
-    const [taskCompletionData, setTaskCompletionData] = useState<TaskCompletionData[]>([]);
-    // const [modalVisible, setModalVisible] = useState(false);
 
     useEffect(() => {
         // Subscribe to real-time updates from Firestore
@@ -91,12 +85,12 @@ const DashboardScreen = () => {
         };
     }, []);
 
-    useEffect(() => {
-        // Refetch completed tasks when selected kid or selected week changes
-        if (selectedKid && selectedWeek) {
-            fetchCompletedTasks();
-        }
-    }, [selectedKid, selectedWeek]);
+    // useEffect(() => {
+    //     // Refetch completed tasks when selected kid or selected week changes
+    //     if (selectedKid && selectedWeek) {
+            
+    //     }
+    // }, [selectedKid, selectedWeek]);
 
     useEffect(() => {
         // Set the default week selection to the current week
@@ -112,12 +106,11 @@ const DashboardScreen = () => {
 
 
     const handleKidView = async () => {
-        const userType = await updateUserTypeToKid();
+        await updateUserTypeToKid();
         router.push("../../screens/kidsViewScreens");
     };
 
     const handleGenerateReport = () => {
-        fetchCompletedTasks(); // Get the latest data
         router.push({
             pathname: '/screens/dashboardScreens/report',
             params: {
@@ -148,11 +141,11 @@ const DashboardScreen = () => {
                 if (fetchedKids.length > 0 && !selectedKid) {
                     setSelectedKid(fetchedKids[0]);
                 }
+                setLoading(false);
             });
             return unsubscribe;
         } catch (error) {
             console.error('Error fetching kids:', error);
-        } finally {
             setLoading(false);
         }
     };
@@ -163,9 +156,14 @@ const DashboardScreen = () => {
             const tasksCollection = collection(FIRESTORE_DB, 'Tasks');
             return onSnapshot(tasksCollection, (querySnapshot) => {
                 const fetchedTasks: Task[] = querySnapshot.docs.map((doc) => ({
+                    docId: doc.id,
                     taskId: doc.data().taskId,
-                    ...doc.data(),
-                    docId: doc.id
+                    name: doc.data().name,
+                    description: doc.data().description,
+                    cost: doc.data().cost,
+                    childId: doc.data().childId || "",
+                    duration: doc.data().duration || 0,
+                    timerType: doc.data().timerType || 'countup'
                 } as Task));
                 setTasks(fetchedTasks);
             });
@@ -180,11 +178,10 @@ const DashboardScreen = () => {
             const taskCompletionsCollection = collection(FIRESTORE_DB, 'TaskCompletions');
             return onSnapshot(taskCompletionsCollection, (querySnapshot) => {
                 const fetchedTaskCompletions: TaskCompletion[] = querySnapshot.docs.map((doc) => {
-                    const data = doc.data();
                     return {
-                        taskCompletionId: data.taskCompletionId,
-                        ...data,
-                        dateCompleted: data.dateCompleted.toDate(), // Convert Firestore Timestamp to Date
+                        taskCompletionId: doc.data().taskCompletionId,
+                        ...doc.data(),
+                        dateCompleted: doc.data().dateCompleted.toDate(), // Convert Firestore Timestamp to Date
                         docId: doc.id
                     } as TaskCompletion;
                 });
@@ -197,34 +194,34 @@ const DashboardScreen = () => {
     
 
     // Helper to fetch completed tasks for the selected kid and week
-    const fetchCompletedTasks = () => {
-        const filteredCompletions = taskCompletions.filter(
-            (completion) => {
-                const completionDate = normalizeDate(completion.dateCompleted);
-                return (
-                    completion.kidId === selectedKid?.kidId &&
-                    completionDate >= normalizeDate(selectedWeek.startOfWeek) &&
-                    completionDate <= normalizeDate(selectedWeek.endOfWeek)
-                );
-            }
-        );
+    // const fetchCompletedTasks = () => {
+    //     const filteredCompletions = taskCompletions.filter(
+    //         (completion) => {
+    //             const completionDate = normalizeDate(completion.dateCompleted);
+    //             return (
+    //                 completion.kidId === selectedKid?.kidId &&
+    //                 completionDate >= normalizeDate(selectedWeek.startOfWeek) &&
+    //                 completionDate <= normalizeDate(selectedWeek.endOfWeek)
+    //             );
+    //         }
+    //     );
 
-        const enrichedData = filteredCompletions.map((completion) => {
-            const task = tasks.find((t) => t.taskId === completion.taskId);
-            return {
-                taskCompletionDataId: uuid.v4() as string,
-                ...completion,
-                taskName: task?.name || '',
-                taskDescription: task?.description || '',
-                taskCost: task?.cost || 0,
-                taskCompleted: task?.completed || false,
-                //timeDuration: task?.timeDuration || 0, // Assuming timeDuration is a field in the task
-                //rating: task?.rating || 0, // Assuming rating is a field in the task
-            };
-        });
+    //     const enrichedData = filteredCompletions.map((completion) => {
+    //         const task = tasks.find((t) => t.taskId === completion.taskId);
+    //         return {
+    //             taskCompletionDataId: uuid.v4() as string,
+    //             ...completion,
+    //             taskName: task?.name || '',
+    //             taskDescription: task?.description || '',
+    //             taskCost: task?.cost || 0,
+    //             taskCompleted: task?.completed || false,
+    //             //timeDuration: task?.timeDuration || 0, // Assuming timeDuration is a field in the task
+    //             //rating: task?.rating || 0, // Assuming rating is a field in the task
+    //         };
+    //     });
 
-        setTaskCompletionData(enrichedData);
-    };
+    //     setTaskCompletionData(enrichedData);
+    // };
 
 
     // Helper functions to get start and 
@@ -255,36 +252,28 @@ const DashboardScreen = () => {
     const formatDate = (date: Date) => {
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
         const day = date.getDate().toString().padStart(2, '0');
-        const year = date.getFullYear();
         return `${month}/${day}`;
     };
-    
+
     // Generate available week options based on recentTasks
     const getAvailableWeeks = (): Week[] => {
         const weeks: Week[] = [];
         const uniqueWeeks = new Set<string>();
+        const kidTaskCompletions = taskCompletions.filter((completion) => completion.kidId === selectedKid?.kidId);
 
-        // Loop through each kid to find their task completion weeks
-        kids.forEach((kid) => {
-            const kidTaskCompletions = taskCompletions.filter((completion) => completion.kidId === kid.kidId);
+        kidTaskCompletions.forEach((task) => {
+            const taskDate = new Date(task.dateCompleted);
+            const startOfWeek = getStartOfWeek(taskDate);
+            const endOfWeek = getEndOfWeek(taskDate);
+            const label = `${formatDate(startOfWeek)} - ${formatDate(endOfWeek)}`;
 
-            kidTaskCompletions.forEach((task) => {
-                const taskDate = new Date(task.dateCompleted);
-                const startOfWeek = getStartOfWeek(taskDate);
-                const endOfWeek = getEndOfWeek(taskDate);
-                const label = `${formatDate(startOfWeek)} - ${formatDate(endOfWeek)}`;
-
-                if (!uniqueWeeks.has(label)) {
-                    uniqueWeeks.add(label);
-                    weeks.push({ label, startOfWeek, endOfWeek });
-                }
-            });
-            
+            if (!uniqueWeeks.has(label)) {
+                uniqueWeeks.add(label);
+                weeks.push({ label, startOfWeek, endOfWeek });
+            }
         });
 
-        // Sort weeks by their start dates
         weeks.sort((a, b) => a.startOfWeek.getTime() - b.startOfWeek.getTime());
-
         return weeks;
     };
 
@@ -293,11 +282,13 @@ const DashboardScreen = () => {
         if (!selectedKid || !selectedWeek) return Array(7).fill(0);
 
         const taskCountPerDay = Array(7).fill(0);
-        taskCompletionData.forEach((data) => {
-            const completionDate = normalizeDate(data.dateCompleted);
-            const dayIndex = (completionDate.getDay() + 6) % 7; // Adjust for Sunday start
-            if (completionDate >= normalizeDate(selectedWeek.startOfWeek) && completionDate <= normalizeDate(selectedWeek.endOfWeek)) {
-                taskCountPerDay[dayIndex]++;
+        taskCompletions.forEach((completion) => {
+            if (completion.kidId === selectedKid.kidId) {
+                const completionDate = normalizeDate(completion.dateCompleted);
+                const dayIndex = (completionDate.getDay() + 6) % 7;
+                if (completionDate >= normalizeDate(selectedWeek.startOfWeek) && completionDate <= normalizeDate(selectedWeek.endOfWeek)) {
+                    taskCountPerDay[dayIndex]++;
+                }
             }
         });
 
@@ -316,13 +307,13 @@ const DashboardScreen = () => {
         ],
     };
 
-    const renderTask = ({ item }: { item: TaskCompletionData }) => (
+    const renderTask = ({ item }: { item: TaskCompletion }) => (
         <View style={styles.taskBubble}>
             <View style={styles.taskDate}>
             <Text>{item.dateCompleted.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</Text>
             </View>
             <View style={styles.taskName}>
-                <Text style={styles.taskNameText}>{item.taskName}</Text>
+                <Text style={styles.taskNameText}>{item.name}</Text>
             </View>
         </View>
     );
@@ -430,7 +421,12 @@ const DashboardScreen = () => {
             {/* Recent tasks section */}
             <Text style={styles.recentTasks}>Completed Tasks</Text>
             <FlatList
-                data={taskCompletionData}
+                data={taskCompletions.filter(
+                    (completion) =>
+                        completion.kidId === selectedKid?.kidId &&
+                        normalizeDate(completion.dateCompleted) >= normalizeDate(selectedWeek.startOfWeek) &&
+                        normalizeDate(completion.dateCompleted) <= normalizeDate(selectedWeek.endOfWeek)
+                )}
                 keyExtractor={(item) => item.taskId}
                 renderItem={renderTask}
                 ListEmptyComponent={<Text style={styles.noCompletedTasks}>No completed tasks.</Text>}
