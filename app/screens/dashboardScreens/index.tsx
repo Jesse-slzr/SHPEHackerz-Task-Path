@@ -85,13 +85,6 @@ const DashboardScreen = () => {
         };
     }, []);
 
-    // useEffect(() => {
-    //     // Refetch completed tasks when selected kid or selected week changes
-    //     if (selectedKid && selectedWeek) {
-            
-    //     }
-    // }, [selectedKid, selectedWeek]);
-
     useEffect(() => {
         // Set the default week selection to the current week
         const currentDate = new Date();
@@ -181,7 +174,7 @@ const DashboardScreen = () => {
                     return {
                         taskCompletionId: doc.data().taskCompletionId,
                         ...doc.data(),
-                        dateCompleted: doc.data().dateCompleted.toDate(), // Convert Firestore Timestamp to Date
+                        dateCompleted: doc.data().dateCompleted.toDate(),
                         docId: doc.id
                     } as TaskCompletion;
                 });
@@ -191,38 +184,6 @@ const DashboardScreen = () => {
             console.error('Error fetching task completions:', error);
         }
     };
-    
-
-    // Helper to fetch completed tasks for the selected kid and week
-    // const fetchCompletedTasks = () => {
-    //     const filteredCompletions = taskCompletions.filter(
-    //         (completion) => {
-    //             const completionDate = normalizeDate(completion.dateCompleted);
-    //             return (
-    //                 completion.kidId === selectedKid?.kidId &&
-    //                 completionDate >= normalizeDate(selectedWeek.startOfWeek) &&
-    //                 completionDate <= normalizeDate(selectedWeek.endOfWeek)
-    //             );
-    //         }
-    //     );
-
-    //     const enrichedData = filteredCompletions.map((completion) => {
-    //         const task = tasks.find((t) => t.taskId === completion.taskId);
-    //         return {
-    //             taskCompletionDataId: uuid.v4() as string,
-    //             ...completion,
-    //             taskName: task?.name || '',
-    //             taskDescription: task?.description || '',
-    //             taskCost: task?.cost || 0,
-    //             taskCompleted: task?.completed || false,
-    //             //timeDuration: task?.timeDuration || 0, // Assuming timeDuration is a field in the task
-    //             //rating: task?.rating || 0, // Assuming rating is a field in the task
-    //         };
-    //     });
-
-    //     setTaskCompletionData(enrichedData);
-    // };
-
 
     // Helper functions to get start and 
     // end dates of a week and format them
@@ -293,6 +254,20 @@ const DashboardScreen = () => {
         });
 
         return taskCountPerDay;
+    };
+    
+    // Helper function to check if there are completed tasks for the selected kid and week
+    const hasCompletedTasks = (): boolean => {
+        if (!selectedKid || !selectedWeek) return false;
+
+        return taskCompletions.some((completion) => {
+            const completionDate = normalizeDate(completion.dateCompleted);
+            return (
+                completion.kidId === selectedKid.kidId &&
+                completionDate >= normalizeDate(selectedWeek.startOfWeek) &&
+                completionDate <= normalizeDate(selectedWeek.endOfWeek)
+            );
+        });
     };
 
     const taskDataForWeek = getTaskDataForWeek();
@@ -413,9 +388,11 @@ const DashboardScreen = () => {
                     }}
                     style={styles.chart}
                 />
-                <Pressable style={styles.reportButton} onPress={handleGenerateReport}>
-                    <Text style={styles.reportButtonText}>Show Full Report</Text>
-                </Pressable>
+                {hasCompletedTasks() && (
+                    <Pressable style={styles.reportButton} onPress={handleGenerateReport}>
+                        <Text style={styles.reportButtonText}>Show Full Report</Text>
+                    </Pressable>
+                )}
             </View>
             
             {/* Recent tasks section */}

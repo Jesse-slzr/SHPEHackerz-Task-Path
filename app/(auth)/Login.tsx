@@ -10,23 +10,14 @@ import {
     StyleSheet,
     Switch
 } from 'react-native'
-import { FIREBASE_AUTH, FIREBASE_DB as FIRESTORE_DB } from '../../FirebaseConfig';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import {addDoc, collection, } from 'firebase/firestore';
+import { FIREBASE_AUTH } from '../../FirebaseConfig';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useState } from 'react';
 import { FirebaseError } from 'firebase/app';
-import uuid from 'react-native-uuid';
 import { useRouter } from 'expo-router';
 import { updateUserTypeToKid, updateUserTypeToParent } from "../../utils/firebaseUtils";
-
-interface Parent {
-    docId: string;
-    parentId: string;
-    userUID: string;
-    email: string;
-    userType: 'parent' | 'kid';
-    createdAt?: Date;
-}
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 
 const Login = () => {
 	const [email, setEmail] = useState('');
@@ -34,45 +25,7 @@ const Login = () => {
     const [isParent, setIsParent] = useState(true); 
 	const [loading, setLoading] = useState(false);
     const auth = FIREBASE_AUTH;
-    const [parents, setParents] = useState<Parent[]>([]);
     const router = useRouter(); 
-
-    // Function to create a parent collection in Firestore
-    const createParentAccount = async (uid: string, email: string) => {
-        try {
-            const parentId = uuid.v4() as string; // Generate unique ID
-            const newParent: Omit<Parent, 'docId'> = {
-                parentId: parentId,
-                userUID: uid,
-                email: email,
-                userType: 'parent'
-            };
-            const docRef = await addDoc(collection(FIRESTORE_DB, 'Parents'), newParent);
-            const parentWithDocId: Parent = { ...newParent, docId: docRef.id }; // Explicitly type the final object
-            setParents((prevParents) => [...prevParents, parentWithDocId]);
-            // const userType = await updateUserTypeToParent();
-            console.log("New Parent added with ID: ", docRef.id);
-        } catch (error) {
-            console.error("Error adding document: ", error);
-        }
-    }
-
-    // Function to handle sign up
-	const signUp = async () => {
-		setLoading(true);
-		try {
-			const userCredential = await createUserWithEmailAndPassword(auth(), email, password);
-            const uid = userCredential.user.uid;
-            await createParentAccount(uid, email);
-            await updateUserTypeToParent();
-			alert('Account created successfully!');
-		} catch (e: any) {
-			const err = e as FirebaseError;
-			alert('Registration failed: ' + err.message);
-		} finally {
-			setLoading(false);
-		}
-	};
 
     // Function to handle sign in
 	const signIn = async () => {
@@ -109,11 +62,13 @@ const Login = () => {
             resizeMode="cover"
             style={styles.backgroundImage}
         >
-            {/* Title image */}
-            <Image
-                source={require('../../assets/images/TaskPath.png')}
-                style={styles.titleImage}
-            />
+            {/* Header with Back Arrow */}
+            <View style={styles.header}>
+                <Pressable onPress={() => router.push('/(auth)/LandingScreen')} style={styles.backButton}>
+                    <FontAwesomeIcon icon={faArrowLeft} size={24} color="black" />
+                </Pressable>
+                <Text style={styles.headerTitle}>Login</Text>
+            </View>
 
             {/* Login form */}
             <View style={styles.container}>
@@ -126,6 +81,7 @@ const Login = () => {
                         autoCapitalize="none"
                         keyboardType="email-address"
                         placeholder="Email"
+                        placeholderTextColor="#666"
                     />
                     <TextInput
                         style={styles.input}
@@ -133,6 +89,7 @@ const Login = () => {
                         onChangeText={setPassword}
                         secureTextEntry
                         placeholder="Password"
+                        placeholderTextColor="#666"
                     />
 
                     {/* Toggle Switch for Account Type */}
@@ -151,15 +108,15 @@ const Login = () => {
                         style={[styles.buttonContainer]}
                         onPress={signIn}
                     >
-                        <Text style={{ color: '#000' }}>Login</Text>
+                        <Text style={styles.buttonText}>Login</Text>
                     </Pressable>
 
-                    {/* Sign Up Button*/}
+                    {/* Navigate to Sign Up */}
                     <Pressable
                         style={[styles.buttonContainer]}
-                        onPress={signUp}
+                        onPress={() => router.push('/(auth)/SignUp')}
                     >
-                        <Text style={{ color: '#000' }}>Create account</Text>
+                        <Text style={styles.buttonText}>Go to Sign Up</Text>
                     </Pressable>
                 </KeyboardAvoidingView>
             </View>
@@ -173,14 +130,25 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
     },
-    titleImage: {
-        width: '100%',
-        height: '25%',
-        marginTop: 30,
-        overflow: 'hidden',
-        justifyContent: 'center',
+    header: {
+        backgroundColor: '#A8D5BA',
+        padding: 16,
+        paddingTop: 48,
+        flexDirection: 'row',
         alignItems: 'center',
-        alignSelf: 'center',
+        justifyContent: 'space-between',
+        height: 108,
+    },
+    backButton: {
+        padding: 10,
+    },
+    headerTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#000',
+        flex: 1,
+        textAlign: 'center',
+        marginRight: 40,
     },
 	container: {
         marginBottom: 320,
@@ -194,7 +162,8 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 		borderRadius: 4,
 		padding: 10,
-		backgroundColor: '#fff'
+		backgroundColor: '#fff',
+        fontSize: 14,
 	},
     loadingContainer: {
         flex: 1,
@@ -213,7 +182,7 @@ const styles = StyleSheet.create({
     },
     highlightText: {
         fontWeight: 'bold',
-        color: '#000', // Highlight color (red for Kids, green for Parent)
+        color: '#000',
     },
     buttonContainer: {
         marginVertical: 10,
@@ -226,7 +195,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         width: '50%',
         alignSelf: 'center'
-    } 
+    },
+    buttonText: {
+        color: '#000',
+        fontSize: 16,
+    },
 });
 
 export default Login
