@@ -24,6 +24,7 @@ interface Task {
     cost: number;
     duration: number;
     timerType: 'countdown' | 'countup';
+    childIds: string[];
 }
 
 interface TaskCompletion extends Task{
@@ -74,6 +75,7 @@ const addTaskCompletion = async (
             cost: task.cost,
             duration: task.duration,
             timerType: task.timerType,
+            childIds: task.childIds,
             taskRemoved,
         };
 
@@ -257,6 +259,11 @@ const KidScreen = () => {
     }, [kidId]);
 
     useEffect(() => {
+        // Reset state when kidId changes
+        setTasks([]); 
+        setCompletions([]); 
+        setLoading(true);
+
         const fetchData = async () => {
             const tasksRef = collection(FIRESTORE_DB, 'Tasks');
             const completionsRef = collection(FIRESTORE_DB, 'TaskCompletions');
@@ -266,9 +273,15 @@ const KidScreen = () => {
                 const taskSnapshot = await getDocs(tasksRef);
                 const fetchedTasks: Task[] = taskSnapshot.docs.map((doc) => ({
                     taskId: doc.data().taskId,
+                    childIds: doc.data().childIds || [],
                     ...doc.data(),
                     docId: doc.id,
                 } as Task));
+
+                // Filter tasks to only those assigned to this kid
+                const kidAssignedTasks = fetchedTasks.filter((task) =>
+                    task.childIds.includes(kidId)
+                );
     
                 // Fetching task completions for the kid
                 const completionsQuery = query(completionsRef, where('kidId', '==', kidId));
@@ -281,7 +294,7 @@ const KidScreen = () => {
                     ...doc.data(),
                 } as TaskCompletion));
     
-                setTasks(fetchedTasks);
+                setTasks(kidAssignedTasks);
                 setCompletions(fetchedCompletions);
             } catch (error) {
                 console.error("Error fetching tasks or completions:", error);

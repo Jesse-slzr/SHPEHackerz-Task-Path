@@ -7,8 +7,18 @@ import { faTasks, faChild, faGift, faHouse, faPlus} from '@fortawesome/free-soli
 import { useRouter } from 'expo-router';
 import { FIREBASE_DB as FIRESTORE_DB} from '../../../FirebaseConfig';
 import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc, query, where } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import uuid from 'react-native-uuid';
 import {Swipeable, GestureHandlerRootView,} from 'react-native-gesture-handler';
+
+interface Kid {
+    docId: string;
+    kidId: string;
+    name: string;
+    age: number;
+    coinCount: number;
+    parentUuid: string;
+}
 
 interface Task {
     docId: string;
@@ -16,9 +26,10 @@ interface Task {
     name: string;
     description: string;
     cost: number;
-    childId: string;
+    childIds: string[];
     duration: number;
     timerType: 'countdown' | 'countup';
+    parentUuid: string;
 }
 
 const TaskScreen = () => {
@@ -28,6 +39,8 @@ const TaskScreen = () => {
     const [taskDuration, setTaskDuration] = useState('');
     const [timerType, setTimerType] = useState<'countdown' | 'countup'>('countup');
     const [tasks, setTasks] = useState<Task[]>([]);
+    const [kids, setKids] = useState<Kid[]>([]);
+    const [selectedChildIds, setSelectedChildIds] = useState<string[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [createTaskModalVisible, setCreateTaskModalVisible] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -36,28 +49,48 @@ const TaskScreen = () => {
 
     useEffect(() => {
         fetchTasks();
+        fetchKids();
     }, []);
+
+    const fetchKids = async () => {
+        try {
+            const auth = getAuth();
+            const parentUuid = auth.currentUser?.uid || '';
+            const querySnapshot = await getDocs(query(collection(FIRESTORE_DB, 'Kids'), where('parentUuid', '==', parentUuid)));
+            const fetchedKids: Kid[] = querySnapshot.docs.map((doc) => ({
+                kidId: doc.data().kidId,
+                ...doc.data(),
+                docId: doc.id,
+            } as Kid));
+            setKids(fetchedKids);
+            setLoading(false);
+        } catch (error) {
+            console.error('Error fetching kids:', error);
+        }
+    };
 
     const addTaskToFirestore = async () => {
         try {
             const taskId = uuid.v4() as string;// Generate unique ID
+            const auth = getAuth();
             const newTask: Omit<Task, 'docId'> = {
                 taskId,
                 name: taskName,
                 description: taskDescription,
                 cost: parseFloat(taskCost) || 0,
-                childId: "",
+                childIds: selectedChildIds,
                 duration: timerType === 'countdown' ? parseFloat(taskDuration) || 0 : 0,
-                timerType
+                timerType,
+                parentUuid: auth.currentUser?.uid || ''
             };
             const docRef = await addDoc(collection(FIRESTORE_DB, 'Tasks'), newTask);
-            const taskWithDocId: Task = { ...newTask, docId: docRef.id };
-            setTasks((prevTasks) => [...prevTasks, taskWithDocId]);
+            setTasks((prevTasks) => [...prevTasks, { ...newTask, docId: docRef.id }]);
             setTaskName('');
             setTaskDescription('');
             setTaskCost('');
             setTaskDuration('');
             setTimerType('countup');
+            setSelectedChildIds([]);
             setCreateTaskModalVisible(false);   
         } catch (error) {
             console.error("Error adding document: ", error);
@@ -66,10 +99,17 @@ const TaskScreen = () => {
 
     const fetchTasks = async () => {
         try {
-            const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Tasks'));
+            const auth = getAuth();
+            const parentUuid = auth.currentUser?.uid || '';
+            const q = query(
+                collection(FIRESTORE_DB, 'Tasks'),
+                where('parentUuid', '==', parentUuid)
+            );
+            const querySnapshot = await getDocs(q);
             const fetchedTasks: Task[] = querySnapshot.docs.map((doc) => ({
                 docId: doc.id,
                 taskId: doc.data().taskId,
+                childIds: doc.data().childIds || [],
                 ...doc.data(),
                 duration: doc.data().duration || 0,
                 timerType: (doc.data().timerType as 'countdown' | 'countup') || 'countup'
@@ -81,34 +121,23 @@ const TaskScreen = () => {
         }
     };
 
-    const updateTask = async (
-        task: Task,
-        taskId: string,
-        updatedName: string,
-        updatedDescription: string,
-        updatedCost: string,
-        updatedDuration: string,
-        updatedTimerType: 'countdown' | 'countup'
-    ) => {
+    const updateTask = async (task: Task) => {
         try {
             const taskRef = doc(FIRESTORE_DB, 'Tasks', task.docId);
-            const updatedDurationValue = updatedTimerType === 'countdown' ? parseFloat(updatedDuration) || 0 : 0;
+            const updatedDurationValue = task.timerType === 'countdown' ? task.duration : 0;
             await updateDoc(taskRef, {
-                name: updatedName,
-                description: updatedDescription,
-                cost: parseFloat(updatedCost),
+                name: task.name,
+                description: task.description,
+                cost: task.cost,
+                childIds: task.childIds,
                 duration: updatedDurationValue,
-                timerType: updatedTimerType
+                timerType: task.timerType
             });
-            setTasks((prevTasks) => prevTasks.map((task) => 
-                task.taskId === taskId ? { ...task, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost), duration: updatedDurationValue, timerType: updatedTimerType } : task
+            setTasks((prevTasks) => prevTasks.map((t) => 
+                t.taskId === task.taskId ? { ...task } : t
             ));
             setModalVisible(false);
             setSelectedTask(null);
-            setTaskName('');
-            setTaskDescription('');
-            setTaskCost('');
-            setTaskDuration('');
         } catch (error) {
             console.error("Error updating document: ", error);
         }
@@ -149,7 +178,7 @@ const TaskScreen = () => {
         return (
             <Swipeable renderRightActions={renderRightActions}>
                 <Pressable style={styles.taskItem} onPress={() => openTaskModal(item)}>
-                    <Text style={styles.taskName}>{item.name}</Text>
+                    <Text style={styles.taskName}>{item.name} (For: {item.childIds.map(id => kids.find(k => k.kidId === id)?.name || id).join(', ') || 'None'})</Text>
                 </Pressable>
             </Swipeable>
         );
@@ -162,7 +191,7 @@ const TaskScreen = () => {
 
     const handleSave = () => {
         if (selectedTask) {
-            updateTask(selectedTask,selectedTask.taskId, selectedTask.name, selectedTask.description, selectedTask.cost.toString(), selectedTask.duration.toString(), selectedTask.timerType);
+            updateTask(selectedTask);
         }
     };
 
@@ -267,6 +296,24 @@ const TaskScreen = () => {
                                             />
                                         </View>
                                     )}
+
+                                    <Text style={styles.modalSubTitle}>Assign to Kids:</Text>
+                                    {kids.map((kid) => (
+                                        <View key={kid.kidId} style={styles.checkboxContainer}>
+                                            <Pressable
+                                                onPress={() => {
+                                                    const updatedChildIds = selectedTask?.childIds.includes(kid.kidId)
+                                                        ? selectedTask.childIds.filter((id) => id !== kid.kidId)
+                                                        : [...(selectedTask?.childIds || []), kid.kidId];
+                                                    setSelectedTask((prev) => prev ? { ...prev, childIds: updatedChildIds } : null);
+                                                }}
+                                                style={styles.checkbox}
+                                            >
+                                                <Text>{selectedTask?.childIds.includes(kid.kidId) ? '✓' : ' '}</Text>
+                                            </Pressable>
+                                            <Text>{kid.name}</Text>
+                                        </View>
+                                    ))}
                                     
                                     <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
                                         <Text style={styles.textStyle}>Save</Text>
@@ -352,6 +399,25 @@ const TaskScreen = () => {
                                             onChangeText={setTaskDuration}
                                         />
                                     )}
+
+                                    <Text style={styles.modalSubTitle}>Assign to Kids:</Text>
+                                    {kids.map((kid) => (
+                                        <View key={kid.kidId} style={styles.checkboxContainer}>
+                                            <Pressable
+                                                onPress={() => {
+                                                    const updatedChildIds = selectedChildIds.includes(kid.kidId)
+                                                        ? selectedChildIds.filter((id) => id !== kid.kidId)
+                                                        : [...selectedChildIds, kid.kidId];
+                                                    setSelectedChildIds(updatedChildIds);
+                                                }}
+                                                style={styles.checkbox}
+                                            >
+                                                <Text>{selectedChildIds.includes(kid.kidId) ? '✓' : ' '}</Text>
+                                            </Pressable>
+                                            <Text>{kid.name}</Text>
+                                        </View>
+                                    ))}
+
                                     <Pressable style={styles.plusButtonStyle} onPress={addTaskToFirestore}>
                                         <FontAwesome name="plus" size={12} color="black" />
                                     </Pressable>
@@ -564,6 +630,20 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: 'bold',
         fontSize: 14,
+    },
+    checkboxContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 5,
+    },
+    checkbox: {
+        width: 20,
+        height: 20,
+        borderWidth: 1,
+        borderColor: '#000',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
     },
 });
 
