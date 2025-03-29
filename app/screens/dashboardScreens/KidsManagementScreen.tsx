@@ -1,6 +1,6 @@
 // KidScreen.tsx
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, Alert, KeyboardAvoidingView } from 'react-native';
+import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, Alert, Keyboard, KeyboardAvoidingView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { FontAwesome } from '@expo/vector-icons';
 import { faTasks, faChild, faGift, faHouse, faPlus, faUndo } from '@fortawesome/free-solid-svg-icons';
@@ -227,6 +227,8 @@ const KidScreen = () => {
                                 placeholderTextColor="#333"
                                 value={selectedKid ? selectedKid.name : ''}
                                 onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, name: text }) as Kid | null)}
+                                returnKeyType="done"
+                                onSubmitEditing={() => Keyboard.dismiss()}
                             />
 
                             <Text style={styles.modalSubTitle}>Age:</Text>
@@ -237,6 +239,8 @@ const KidScreen = () => {
                                 keyboardType="numeric"
                                 value={selectedKid ? String(selectedKid.age) : ''}
                                 onChangeText={(text) => setSelectedKid((prev) => ({ ...prev, age: parseInt(text.replace(/[^0-9]/g, ''), 10) }) as Kid | null)}
+                                returnKeyType="done"
+                                onSubmitEditing={() => Keyboard.dismiss()}
                             />
 
                             <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
@@ -275,6 +279,8 @@ const KidScreen = () => {
                                 placeholderTextColor="#333"
                                 value={kidName}
                                 onChangeText={setKidName}
+                                returnKeyType="done"
+                                onSubmitEditing={() => Keyboard.dismiss()}
                             />
                             <TextInput
                                 style={styles.input}
@@ -283,6 +289,8 @@ const KidScreen = () => {
                                 keyboardType="numeric"
                                 value={kidAge}
                                 onChangeText={setKidAge}
+                                returnKeyType="done"
+                                onSubmitEditing={() => Keyboard.dismiss()}
                             />
                             <Pressable style={styles.plusButtonStyle} onPress={addKidToFirestore}>
                                 <FontAwesome name="plus" size={12} color="black" />

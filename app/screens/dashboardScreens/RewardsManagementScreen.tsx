@@ -1,6 +1,6 @@
 // RewardScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
+import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, Keyboard, KeyboardAvoidingView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { FontAwesome } from '@expo/vector-icons';
 import { faTasks, faChild, faGift, faHouse } from '@fortawesome/free-solid-svg-icons';
@@ -48,7 +48,6 @@ const RewardScreen = () => {
         fetchRewards();
         fetchKids();
     }, []);
-
 
     const fetchKids = async () => {
         try {
@@ -155,7 +154,27 @@ const RewardScreen = () => {
         return (
             <Swipeable renderRightActions={renderRightActions}>
                 <Pressable style={styles.rewardItem} onPress={() => openRewardModal(item)}>
-                    <Text>{item.name} (For: {item.childIds.map(id => kids.find(k => k.kidId === id)?.name || id).join(', ') || 'None'})</Text>
+                    <View style={styles.rewardContent}>
+                        <Text style={styles.rewardName}>{item.name}</Text>
+                        <View style={styles.kidBubblesContainer}>
+                            {item.childIds.length > 0 ? (
+                                item.childIds.map((id) => {
+                                    const kid = kids.find(k => k.kidId === id);
+                                    return (
+                                        <View key={id} style={styles.kidBubble}>
+                                            <Text style={styles.kidBubbleText}>
+                                                {kid?.name || id}
+                                            </Text>
+                                        </View>
+                                    );
+                                })
+                            ) : (
+                                <View style={[styles.kidBubble, styles.noneBubble]}>
+                                    <Text style={styles.kidBubbleText}>None</Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
                 </Pressable>
             </Swipeable>
         );
@@ -226,6 +245,8 @@ const RewardScreen = () => {
                                 placeholderTextColor="#333"
                                 value={selectedReward ? selectedReward.name : ''}
                                 onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, name: text }) as Reward | null)}
+                                returnKeyType="done"
+                                onSubmitEditing={() => Keyboard.dismiss()}
                             />
 
                             <Text style={styles.modalSubTitle}>Description:</Text>
@@ -233,6 +254,8 @@ const RewardScreen = () => {
                                 style={styles.input}
                                 value={selectedReward ? selectedReward.description : ''}
                                 onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, description: text }) as Reward | null)}
+                                returnKeyType="done"
+                                onSubmitEditing={() => Keyboard.dismiss()}
                             />
 
                             <Text style={styles.modalSubTitle}>Cost:</Text>
@@ -241,6 +264,8 @@ const RewardScreen = () => {
                                 keyboardType="numeric"
                                 value={selectedReward ? String(selectedReward.cost) : ''}
                                 onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, cost: parseFloat(text) }) as Reward | null)}
+                                returnKeyType="done"
+                                onSubmitEditing={() => Keyboard.dismiss()}
                             />
 
                             {/* Child Selection for Edit */}
@@ -298,6 +323,8 @@ const RewardScreen = () => {
                                 placeholderTextColor="#333"
                                 value={rewardName}
                                 onChangeText={setRewardName}
+                                returnKeyType="done"
+                                onSubmitEditing={() => Keyboard.dismiss()}
                             />
                             <TextInput
                                 style={styles.input}
@@ -305,6 +332,8 @@ const RewardScreen = () => {
                                 placeholderTextColor="#333"
                                 value={rewardDescription}
                                 onChangeText={setRewardDescription}
+                                returnKeyType="done"
+                                onSubmitEditing={() => Keyboard.dismiss()}
                             />
                             <TextInput
                                 style={styles.input}
@@ -313,6 +342,8 @@ const RewardScreen = () => {
                                 keyboardType="numeric"
                                 value={rewardCost}
                                 onChangeText={setRewardCost}
+                                returnKeyType="done"
+                                onSubmitEditing={() => Keyboard.dismiss()}
                             />
 
                             {/* Child Selection for Creation */}
@@ -406,8 +437,36 @@ const styles = StyleSheet.create({
         borderRightWidth: 5,
         borderRightColor: '#A8D5BA',
     },
+    rewardContent: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+    },
     rewardName: {
         fontSize: 16,
+        marginRight: 10,
+    },
+    kidBubblesContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+    },
+    kidBubble: {
+        backgroundColor: '#A8D5BA',
+        borderRadius: 12,
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        marginRight: 5,
+        marginTop: 2,
+    },
+    noneBubble: {
+        backgroundColor: '#CCCCCC', // Grey color for "None"
+    },
+    kidBubbleText: {
+        fontSize: 12,
+        color: '#333',
+        fontWeight: '500',
     },
     overlay: {
         flex: 1,

@@ -1,6 +1,6 @@
 // TaskScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, KeyboardAvoidingView, ScrollView } from 'react-native';
+import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, Keyboard, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { FontAwesome } from '@expo/vector-icons';
 import { faTasks, faChild, faGift, faHouse, faPlus} from '@fortawesome/free-solid-svg-icons';
@@ -178,7 +178,27 @@ const TaskScreen = () => {
         return (
             <Swipeable renderRightActions={renderRightActions}>
                 <Pressable style={styles.taskItem} onPress={() => openTaskModal(item)}>
-                    <Text style={styles.taskName}>{item.name} (For: {item.childIds.map(id => kids.find(k => k.kidId === id)?.name || id).join(', ') || 'None'})</Text>
+                    <View style={styles.taskContent}>
+                        <Text style={styles.taskName}>{item.name}</Text>
+                        <View style={styles.kidBubblesContainer}>
+                            {item.childIds.length > 0 ? (
+                                item.childIds.map((id) => {
+                                    const kid = kids.find(k => k.kidId === id);
+                                    return (
+                                        <View key={id} style={styles.kidBubble}>
+                                            <Text style={styles.kidBubbleText}>
+                                                {kid?.name || id}
+                                            </Text>
+                                        </View>
+                                    );
+                                })
+                            ) : (
+                                <View style={[styles.kidBubble, styles.noneBubble]}>
+                                    <Text style={styles.kidBubbleText}>None</Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
                 </Pressable>
             </Swipeable>
         );
@@ -250,12 +270,16 @@ const TaskScreen = () => {
                                         placeholderTextColor="#333"
                                         value={selectedTask ? selectedTask.name : ''}
                                         onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, name: text }) as Task | null)}
+                                        returnKeyType="done"
+                                        onSubmitEditing={() => Keyboard.dismiss()}
                                     />
                                     <Text style={styles.modalSubTitle}>Description:</Text>
                                     <TextInput 
                                         style={styles.input}
                                         value={selectedTask ? selectedTask.description : ''}
                                         onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, description: text }) as Task | null)}
+                                        returnKeyType="done"
+                                        onSubmitEditing={() => Keyboard.dismiss()}
                                     />
                                     <Text style={styles.modalSubTitle}>Coins:</Text>
                                     <TextInput 
@@ -265,6 +289,8 @@ const TaskScreen = () => {
                                         keyboardType="numeric" 
                                         value={selectedTask ? String(selectedTask.cost) : ''} 
                                         onChangeText={(text) => setSelectedTask((prev) => ({ ...prev, cost: parseInt(text.replace(/[^0-9]/g, ''), 10) }) as Task | null)}
+                                        returnKeyType="done"
+                                        onSubmitEditing={() => Keyboard.dismiss()}
                                     />
                                     <Text style={styles.modalSubTitle}>Timer Type:</Text>
                                     <View style={styles.radioContainer}>
@@ -293,6 +319,8 @@ const TaskScreen = () => {
                                                 keyboardType="numeric"
                                                 value={selectedTask ? String(selectedTask.duration) : ''}
                                                 onChangeText={(text) => setSelectedTask((prev) => prev ? { ...prev, duration: parseInt(text.replace(/[^0-9]/g, ''), 10) || 0 } : null)}
+                                                returnKeyType="done"
+                                                onSubmitEditing={() => Keyboard.dismiss()}
                                             />
                                         </View>
                                     )}
@@ -356,6 +384,8 @@ const TaskScreen = () => {
                                         placeholderTextColor="#333"
                                         value={taskName}
                                         onChangeText={setTaskName}
+                                        returnKeyType="done"
+                                        onSubmitEditing={() => Keyboard.dismiss()}
                                     />
                                     <TextInput
                                         style={styles.input}
@@ -363,6 +393,8 @@ const TaskScreen = () => {
                                         placeholderTextColor="#333"
                                         value={taskDescription}
                                         onChangeText={setTaskDescription}
+                                        returnKeyType="done"
+                                        onSubmitEditing={() => Keyboard.dismiss()}
                                     />
                                     <TextInput
                                         style={styles.input}
@@ -371,6 +403,8 @@ const TaskScreen = () => {
                                         keyboardType="numeric"
                                         value={taskCost}
                                         onChangeText={setTaskCost}
+                                        returnKeyType="done"
+                                        onSubmitEditing={() => Keyboard.dismiss()}
                                     />
                                     <Text style={styles.modalSubTitle}>Timer Type:</Text>
                                     <View style={styles.radioContainer}>
@@ -397,6 +431,8 @@ const TaskScreen = () => {
                                             keyboardType="numeric"
                                             value={taskDuration}
                                             onChangeText={setTaskDuration}
+                                            returnKeyType="done"
+                                            onSubmitEditing={() => Keyboard.dismiss()}
                                         />
                                     )}
 
@@ -494,6 +530,34 @@ const styles = StyleSheet.create({
     },
     taskName: {
         fontSize: 16,
+        marginRight: 10,
+    },
+    taskContent: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+    },
+    kidBubblesContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+    },
+    kidBubble: {
+        backgroundColor: '#A8D5BA',
+        borderRadius: 12,
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        marginRight: 5,
+        marginTop: 2,
+    },
+    kidBubbleText: {
+        fontSize: 12,
+        color: '#333',
+        fontWeight: '500',
+    },
+    noneBubble: {
+        backgroundColor: '#CCCCCC',
     },
     overlay: {
         flex: 1,
