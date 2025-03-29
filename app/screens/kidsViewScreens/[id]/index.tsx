@@ -27,10 +27,16 @@ interface Task {
     childIds: string[];
 }
 
-interface TaskCompletion extends Task{
+interface TaskCompletion {
     docId: string;
     taskCompletionId: string;
     kidId: string;
+    taskId: string;
+    name: string;
+    description: string;
+    cost: number;
+    duration: number;
+    timerType: 'countdown' | 'countup';
     dateCompleted: Date;
     countupDuration?: number;
     countdownDuration?: number;
@@ -75,7 +81,6 @@ const addTaskCompletion = async (
             cost: task.cost,
             duration: task.duration,
             timerType: task.timerType,
-            childIds: task.childIds,
             taskRemoved,
         };
 
