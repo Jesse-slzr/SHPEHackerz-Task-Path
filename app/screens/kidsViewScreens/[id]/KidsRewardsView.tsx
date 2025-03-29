@@ -16,12 +16,13 @@ import { FIREBASE_DB as FIRESTORE_DB } from '../../../../FirebaseConfig';
 import uuid from 'react-native-uuid';
 
 interface Reward {
-    docId: string,
-    rewardId: string,
-    name: string,
-    description: string,
-    cost: number,
-    completed: boolean
+    docId: string;
+    rewardId: string;
+    name: string;
+    description: string;
+    cost: number;
+    completed: boolean;
+    childIds: string[];
 }
 
 interface RewardCompletion {
@@ -129,6 +130,11 @@ const KidsRewardsView = () => {
     }, [kidId]);
 
     useEffect(() => {
+        // Reset state when kidId changes
+        setRewards([]); 
+        setCompletions([]); 
+        setLoading(true);
+
         const fetchData = async () => {
             const rewardsRef = collection(FIRESTORE_DB, 'Rewards');
             const completionsRef = collection(FIRESTORE_DB, 'RewardCompletions');
@@ -141,6 +147,11 @@ const KidsRewardsView = () => {
                     ...doc.data(),
                     docId: doc.id,
                 } as Reward));
+
+                // Filter rewards to only those assigned to this kid
+                const kidAssignedRewards = fetchedRewards.filter((reward) =>
+                    reward.childIds.includes(kidId)
+                );
     
                 // Fetching reward completions for the kid
                 const completionsQuery = query(completionsRef, where('kidId', '==', kidId));
@@ -154,7 +165,7 @@ const KidsRewardsView = () => {
     
                 // Map completed status to rewards
                 const completedRewardIds = fetchedCompletions.map((completion) => completion.rewardId);
-                const updatedRewards = fetchedRewards.map((reward) => ({
+                const updatedRewards = kidAssignedRewards.map((reward) => ({
                     ...reward,
                     completed: completedRewardIds.includes(reward.rewardId),
                 }));

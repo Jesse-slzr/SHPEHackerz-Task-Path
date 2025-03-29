@@ -6,9 +6,19 @@ import { FontAwesome } from '@expo/vector-icons';
 import { faTasks, faChild, faGift, faHouse } from '@fortawesome/free-solid-svg-icons';
 import { useRouter } from 'expo-router';
 import { FIREBASE_DB as FIRESTORE_DB} from '../../../FirebaseConfig';
-import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { addDoc, collection, getDocs, updateDoc, doc, deleteDoc, query, where } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import uuid from 'react-native-uuid';
 import {Swipeable, GestureHandlerRootView,} from 'react-native-gesture-handler';
+
+interface Kid {
+    docId: string;
+    kidId: string;
+    name: string;
+    age: number;
+    coinCount: number;
+    parentUuid: string;
+}
 
 interface Reward {
     docId: string;
@@ -17,7 +27,8 @@ interface Reward {
     description: string;
     cost: number;
     claimed: boolean;
-    childId: string;
+    childIds: string[];
+    parentUuid: string;
 }
 
 const RewardScreen = () => {
@@ -25,6 +36,8 @@ const RewardScreen = () => {
     const [rewardDescription, setRewardDescription] = useState('');
     const [rewardCost, setRewardCost] = useState('');
     const [rewards, setRewards] = useState<Reward[]>([]);
+    const [kids, setKids] = useState<Kid[]>([]);
+    const [selectedChildIds, setSelectedChildIds] = useState<string[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [createRewardModalVisible, setCreateRewardModalVisible] = useState(false);
     const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
@@ -33,7 +46,26 @@ const RewardScreen = () => {
     
     useEffect(() => {
         fetchRewards();
+        fetchKids();
     }, []);
+
+
+    const fetchKids = async () => {
+        try {
+            const auth = getAuth();
+            const parentUuid = auth.currentUser?.uid || '';
+            const querySnapshot = await getDocs(query(collection(FIRESTORE_DB, 'Kids'), where('parentUuid', '==', parentUuid)));
+            const fetchedKids: Kid[] = querySnapshot.docs.map((doc) => ({
+                kidId: doc.data().kidId,
+                ...doc.data(),
+                docId: doc.id,
+            } as Kid));
+            setKids(fetchedKids);
+            setLoading(false);
+        } catch (error) {
+            console.error('Error fetching kids:', error);
+        }
+    };
 
     const addRewardToFirestore = async () => {
         try {
@@ -44,13 +76,15 @@ const RewardScreen = () => {
                 description: rewardDescription,
                 cost: parseFloat(rewardCost),
                 claimed: false,
-                childId: ""
+                childIds: selectedChildIds,
+                parentUuid: getAuth().currentUser?.uid ?? ''
             };
             const docRef = await addDoc(collection(FIRESTORE_DB, 'Rewards'), newReward);
             setRewards((prevRewards) => [...prevRewards, { ...newReward, docId: docRef.id }]);
             setRewardName('');
             setRewardDescription('');
             setRewardCost('');
+            setSelectedChildIds([]);
             setCreateRewardModalVisible(false);   
         } catch (error) {
             console.error("Error adding document: ", error);
@@ -59,9 +93,16 @@ const RewardScreen = () => {
 
     const fetchRewards = async () => {
         try {
-            const querySnapshot = await getDocs(collection(FIRESTORE_DB, 'Rewards'));
+            const auth = getAuth();
+            const parentUuid = auth.currentUser?.uid || '';
+            const q = query(
+                collection(FIRESTORE_DB, 'Rewards'),
+                where('parentUuid', '==', parentUuid)
+            );
+            const querySnapshot = await getDocs(q);
             const fetchedRewards: Reward[] = querySnapshot.docs.map((doc) => ({
                 rewardId: doc.data().rewardId,
+                childIds: doc.data().childIds || [],
                 ...doc.data(),
                 docId: doc.id
             } as Reward));
@@ -72,18 +113,20 @@ const RewardScreen = () => {
         }
     };
 
-    const updateReward = async (reward: Reward,rewardId: string, updatedName: string, updatedDescription: string, updatedCost: string) => {
+    const updateReward = async (reward: Reward) => {
         try {
             const rewardRef = doc(FIRESTORE_DB, 'Rewards', reward.docId);
-            await updateDoc(rewardRef, { name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) });
-            setRewards((prevRewards) => prevRewards.map((reward) => 
-                reward.rewardId === rewardId ? { ...reward, name: updatedName, description: updatedDescription, cost: parseFloat(updatedCost) } : reward
+            await updateDoc(rewardRef, {
+                name: reward.name,
+                description: reward.description,
+                cost: reward.cost,
+                childIds: reward.childIds,
+            });
+            setRewards((prevRewards) => prevRewards.map((r) => 
+                r.rewardId === reward.rewardId ? { ...reward } : r
             ));
             setModalVisible(false);
             setSelectedReward(null);
-            setRewardName('');
-            setRewardDescription('');
-            setRewardCost('');
         } catch (error) {
             console.error("Error updating document: ", error);
         }
@@ -112,7 +155,7 @@ const RewardScreen = () => {
         return (
             <Swipeable renderRightActions={renderRightActions}>
                 <Pressable style={styles.rewardItem} onPress={() => openRewardModal(item)}>
-                    <Text>{item.name}</Text>
+                    <Text>{item.name} (For: {item.childIds.map(id => kids.find(k => k.kidId === id)?.name || id).join(', ') || 'None'})</Text>
                 </Pressable>
             </Swipeable>
         );
@@ -125,7 +168,7 @@ const RewardScreen = () => {
 
     const handleSave = () => {
         if (selectedReward) {
-            updateReward(selectedReward, selectedReward.rewardId, selectedReward.name, selectedReward.description, selectedReward.cost.toString());
+            updateReward(selectedReward);
         }
     };
 
@@ -146,135 +189,174 @@ const RewardScreen = () => {
 
     return (
         <GestureHandlerRootView style={styles.container}> 
-        <KeyboardAvoidingView behavior="padding" style={styles.container}>
-            
-            {/* Header with settings and navigation to kids view */}
-            <View style={styles.header}>
-                <Pressable onPress={() => router.push('../dashboardScreens')} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
-                    <FontAwesomeIcon icon={faHouse} size={24} color="black" />
-                </Pressable>
-            </View>
-
-            <Text style={styles.title}>Manage Rewards</Text>
-            <FlatList
-                data={rewards}
-                keyExtractor={(item) => item.rewardId || item.docId}
-                renderItem={renderReward}
-            />
-
-            {/* Edit Reward Modal */}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}>
-                <View style={styles.overlay}>
-                    <View style={styles.modalView}>
-                        <Pressable onPress={() => setModalVisible(false)} style={styles.closeXButton}>
-                            <FontAwesome name="close" size={24} color="black" />
-                        </Pressable>
-
-                        <Text style={styles.modalTitle}>Edit Reward</Text>
-                        
-                        <Text style={styles.modalSubTitle}>Name:</Text>
-                        <TextInput 
-                            style={styles.input}
-                            placeholder="Edit Reward name"
-                            placeholderTextColor="#333"
-                            value={selectedReward ? selectedReward.name : ''}
-                            onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, name: text }) as Reward | null)}
-                        />
-
-                        <Text style={styles.modalSubTitle}>Description:</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={selectedReward ? selectedReward.description : ''}
-                            onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, description: text }) as Reward | null)}
-                        />
-
-                        <Text style={styles.modalSubTitle}>Cost:</Text>
-                        <TextInput 
-                            style={styles.input} 
-                            keyboardType="numeric"
-                            value={selectedReward ? String(selectedReward.cost) : ''}
-                            onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, cost: parseFloat(text) }) as Reward | null)}
-                        />
-
-                        <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
-                            <Text style={styles.textStyle}>Save</Text>
-                        </Pressable>
-                        <Pressable style={[styles.button, styles.buttonDelete]} onPress={handleDelete}>
-                            <Text style={styles.textStyle}>Delete</Text>
-                        </Pressable>
-                        <Pressable style={[styles.button, styles.buttonClose]} onPress={() => setModalVisible(false)}>
-                            <Text style={styles.textStyle}>Close</Text>
-                        </Pressable>
-                    </View>
+            <KeyboardAvoidingView behavior="padding" style={styles.container}>
+                
+                {/* Header with settings and navigation to kids view */}
+                <View style={styles.header}>
+                    <Pressable onPress={() => router.push('../dashboardScreens')} style={styles.headerButton} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                        <FontAwesomeIcon icon={faHouse} size={24} color="black" />
+                    </Pressable>
                 </View>
-            </Modal>
 
-            <Pressable style={styles.plusButtonStyle} onPress={() => setCreateRewardModalVisible(true)}>
-                <FontAwesome name="plus" size={12} color="black" />
-            </Pressable>
+                <Text style={styles.title}>Manage Rewards</Text>
+                <FlatList
+                    data={rewards}
+                    keyExtractor={(item) => item.rewardId || item.docId}
+                    renderItem={renderReward}
+                />
 
-            {/* Create Reward Modal */}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={createRewardModalVisible}
-                onRequestClose={() => setCreateRewardModalVisible(false)}
-            >
-                <View style={styles.overlay}>
-                    <View style={styles.modalView}>
-                        <Pressable onPress={() => setCreateRewardModalVisible(false)} style={styles.closeXButton}>
-                            <FontAwesome name="close" size={24} color="black" />
-                        </Pressable>
-                        <Text style={styles.modalTitle}>Create Reward</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Reward Name"
-                            placeholderTextColor="#333"
-                            value={rewardName}
-                            onChangeText={setRewardName}
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Description"
-                            placeholderTextColor="#333"
-                            value={rewardDescription}
-                            onChangeText={setRewardDescription}
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Cost (# of Coins)"
-                            placeholderTextColor="#333"
-                            keyboardType="numeric"
-                            value={rewardCost}
-                            onChangeText={setRewardCost}
-                        />
-                        <Pressable style={styles.plusButtonStyle} onPress={addRewardToFirestore}>
-                            <FontAwesome name="plus" size={12} color="black" />
-                        </Pressable>
-                        <Pressable style={styles.buttonClose} onPress={() => setCreateRewardModalVisible(false)}>
-                            <Text>Close</Text>
-                        </Pressable>
+                {/* Edit Reward Modal */}
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={modalVisible}
+                    onRequestClose={() => setModalVisible(false)}>
+                    <View style={styles.overlay}>
+                        <View style={styles.modalView}>
+                            <Pressable onPress={() => setModalVisible(false)} style={styles.closeXButton}>
+                                <FontAwesome name="close" size={24} color="black" />
+                            </Pressable>
+
+                            <Text style={styles.modalTitle}>Edit Reward</Text>
+                            
+                            <Text style={styles.modalSubTitle}>Name:</Text>
+                            <TextInput 
+                                style={styles.input}
+                                placeholder="Edit Reward name"
+                                placeholderTextColor="#333"
+                                value={selectedReward ? selectedReward.name : ''}
+                                onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, name: text }) as Reward | null)}
+                            />
+
+                            <Text style={styles.modalSubTitle}>Description:</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={selectedReward ? selectedReward.description : ''}
+                                onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, description: text }) as Reward | null)}
+                            />
+
+                            <Text style={styles.modalSubTitle}>Cost:</Text>
+                            <TextInput 
+                                style={styles.input} 
+                                keyboardType="numeric"
+                                value={selectedReward ? String(selectedReward.cost) : ''}
+                                onChangeText={(text) => setSelectedReward((prev) => ({ ...prev, cost: parseFloat(text) }) as Reward | null)}
+                            />
+
+                            {/* Child Selection for Edit */}
+                            <Text style={styles.modalSubTitle}>Assign to Kids:</Text>
+                            {kids.map((kid) => (
+                                <View key={kid.kidId} style={styles.checkboxContainer}>
+                                <Pressable
+                                    onPress={() => {
+                                    const updatedChildIds = selectedReward?.childIds.includes(kid.kidId)
+                                        ? selectedReward.childIds.filter((id) => id !== kid.kidId)
+                                        : [...(selectedReward?.childIds || []), kid.kidId];
+                                    setSelectedReward((prev) => prev ? { ...prev, childIds: updatedChildIds } : null);
+                                    }}
+                                    style={styles.checkbox}
+                                >
+                                    <Text>{selectedReward?.childIds.includes(kid.kidId) ? '✓' : ' '}</Text>
+                                </Pressable>
+                                <Text>{kid.name}</Text>
+                                </View>
+                            ))}
+
+                            <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
+                                <Text style={styles.textStyle}>Save</Text>
+                            </Pressable>
+                            <Pressable style={[styles.button, styles.buttonDelete]} onPress={handleDelete}>
+                                <Text style={styles.textStyle}>Delete</Text>
+                            </Pressable>
+                            <Pressable style={[styles.button, styles.buttonClose]} onPress={() => setModalVisible(false)}>
+                                <Text style={styles.textStyle}>Close</Text>
+                            </Pressable>
+                        </View>
                     </View>
-                </View>
-            </Modal>
+                </Modal>
 
-            {/* Bottom navigation with icons */}
-            <View style={styles.bottomNavigation}>
-                <Pressable onPress={() => router.push('/screens/dashboardScreens/TasksManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
-                    <FontAwesomeIcon icon={faTasks} size={24} color="black" />
+                <Pressable style={styles.plusButtonStyle} onPress={() => setCreateRewardModalVisible(true)}>
+                    <FontAwesome name="plus" size={12} color="black" />
                 </Pressable>
-                <Pressable onPress={() => router.push('/screens/dashboardScreens/KidsManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
-                    <FontAwesomeIcon icon={faChild} size={24} color="black" />
-                </Pressable>
-                <Pressable onPress={() => router.push('/screens/dashboardScreens/RewardsManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
-                    <FontAwesomeIcon icon={faGift} size={24} color="black" />
-                </Pressable>
-            </View>
-        </KeyboardAvoidingView>
+
+                {/* Create Reward Modal */}
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={createRewardModalVisible}
+                    onRequestClose={() => setCreateRewardModalVisible(false)}
+                >
+                    <View style={styles.overlay}>
+                        <View style={styles.modalView}>
+                            <Pressable onPress={() => setCreateRewardModalVisible(false)} style={styles.closeXButton}>
+                                <FontAwesome name="close" size={24} color="black" />
+                            </Pressable>
+                            <Text style={styles.modalTitle}>Create Reward</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Reward Name"
+                                placeholderTextColor="#333"
+                                value={rewardName}
+                                onChangeText={setRewardName}
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Description"
+                                placeholderTextColor="#333"
+                                value={rewardDescription}
+                                onChangeText={setRewardDescription}
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Cost (# of Coins)"
+                                placeholderTextColor="#333"
+                                keyboardType="numeric"
+                                value={rewardCost}
+                                onChangeText={setRewardCost}
+                            />
+
+                            {/* Child Selection for Creation */}
+                            <Text style={styles.modalSubTitle}>Assign to Kids:</Text>
+                            {kids.map((kid) => (
+                                <View key={kid.kidId} style={styles.checkboxContainer}>
+                                <Pressable
+                                    onPress={() => {
+                                    const updatedChildIds = selectedChildIds.includes(kid.kidId)
+                                        ? selectedChildIds.filter((id) => id !== kid.kidId)
+                                        : [...selectedChildIds, kid.kidId];
+                                    setSelectedChildIds(updatedChildIds);
+                                    }}
+                                    style={styles.checkbox}
+                                >
+                                    <Text>{selectedChildIds.includes(kid.kidId) ? '✓' : ' '}</Text>
+                                </Pressable>
+                                <Text>{kid.name}</Text>
+                                </View>
+                            ))}
+
+                            <Pressable style={styles.plusButtonStyle} onPress={addRewardToFirestore}>
+                                <FontAwesome name="plus" size={12} color="black" />
+                            </Pressable>
+                            <Pressable style={styles.buttonClose} onPress={() => setCreateRewardModalVisible(false)}>
+                                <Text>Close</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </Modal>
+
+                {/* Bottom navigation with icons */}
+                <View style={styles.bottomNavigation}>
+                    <Pressable onPress={() => router.push('/screens/dashboardScreens/TasksManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                        <FontAwesomeIcon icon={faTasks} size={24} color="black" />
+                    </Pressable>
+                    <Pressable onPress={() => router.push('/screens/dashboardScreens/KidsManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                        <FontAwesomeIcon icon={faChild} size={24} color="black" />
+                    </Pressable>
+                    <Pressable onPress={() => router.push('/screens/dashboardScreens/RewardsManagementScreen')} hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}>
+                        <FontAwesomeIcon icon={faGift} size={24} color="black" />
+                    </Pressable>
+                </View>
+            </KeyboardAvoidingView>
         </GestureHandlerRootView>
     );
 };
@@ -426,6 +508,20 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 14,
     },
+    checkboxContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 5,
+      },
+      checkbox: {
+        width: 20,
+        height: 20,
+        borderWidth: 1,
+        borderColor: '#000',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+      },
 });
 
 export default RewardScreen;
