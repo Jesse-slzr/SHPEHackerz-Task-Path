@@ -2,6 +2,7 @@ import {
     View, 
     Text,
     TouchableOpacity,
+    Pressable,
     StyleSheet,
     Image,
     Switch,
@@ -54,6 +55,16 @@ const Page = () => {
                 <FontAwesomeIcon icon={faSignOutAlt} size={24} color="#f44336"/>
                 <Text style={styles.buttonText}>Sign out</Text>
             </TouchableOpacity>
+            <Pressable
+                onPress={() =>
+                    router.push({
+                    pathname: '/screens/dashboardScreens/FullReport',
+                    })
+                }
+                style={styles.buttonContainer}
+                >
+                <Text style={styles.buttonText}>Full Report</Text>
+            </Pressable>
             <TouchableOpacity onPress={() => router.push('/screens/dashboardScreens')} style={styles.buttonContainer}>
                 <FontAwesomeIcon icon={faArrowLeft} size={24} color="#A8D5BA" />
                 <Text style={styles.buttonText}>Back to Dashboard</Text>

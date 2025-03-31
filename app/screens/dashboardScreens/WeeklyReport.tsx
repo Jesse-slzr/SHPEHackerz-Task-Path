@@ -11,7 +11,7 @@ import {
     Pressable,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { BarChart, PieChart } from 'react-native-chart-kit';
+import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 
@@ -43,7 +43,7 @@ interface TaskCompletion {
     taskRemoved?: boolean;
 }
 
-const Report = () => {
+const WeeklyReport = () => {
     const router = useRouter();
     const params = useLocalSearchParams<{
         kidId: string;
@@ -115,21 +115,35 @@ const Report = () => {
 
     const enrichedData = filteredCompletions.map((completion) => ({
         ...completion,
-        taskName: completion.name, // USE DIRECTLY FROM TASKCOMPLETION
+        taskName: completion.name,
         taskDescription: completion.description,
         taskCost: completion.cost,
-        duration: completion.countupDuration || completion.countdownDuration || (completion.duration * 60), // USE COMPLETION DATA FIRST
+        duration: completion.countupDuration || completion.countdownDuration || (completion.duration * 60),
         rating: completion.rating || 0,
     }));
 
-    // Bar Chart: Tasks per Day
+    // Line Chart: Tasks per Day
     const taskDataForWeek = Array(7).fill(0);
+    const labels: string[] = [];
+    const start = normalizeDate(startOfWeek);
+    for (let i = 0; i < 7; i++) {
+        const currentDay = new Date(start);
+        currentDay.setDate(start.getDate() + i);
+        const month = (currentDay.getMonth() + 1).toString().padStart(2, '0');
+        const day = currentDay.getDate().toString().padStart(2, '0');
+        labels.push(`${month}/${day}`); // Format as "MM/DD"
+    }
+
     enrichedData.forEach((data) => {
-        const dayIndex = (data.dateCompleted.getDay() + 6) % 7; // Monday start
-        taskDataForWeek[dayIndex]++;
+        const completionDate = normalizeDate(data.dateCompleted);
+        const dayIndex = Math.floor((completionDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        if (dayIndex >= 0 && dayIndex < 7) {
+            taskDataForWeek[dayIndex]++;
+        }
     });
-    const barChartData = {
-        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+
+    const lineChartData = {
+        labels,
         datasets: [{
             data: taskDataForWeek,
             color: () => '#4CAF50',
@@ -186,12 +200,12 @@ const Report = () => {
                 <Text style={styles.insightText}>Total Coins Earned: {totalCoins}</Text>
             </View>
 
-            {/* Tasks per Day Bar Chart */}
+            {/* Tasks per Day Line Chart */}
             <View style={styles.chartSection}>
                 <Text style={styles.sectionTitle}>Tasks Completed by Day</Text>
-                <BarChart
-                    data={barChartData}
-                    width={Dimensions.get('window').width - 30}
+                <LineChart
+                    data={lineChartData}
+                    width={Dimensions.get('window').width - 60}
                     height={220}
                     fromZero
                     fromNumber={Math.max(...taskDataForWeek) > 4 ? Math.max(...taskDataForWeek) : 4 }
@@ -336,4 +350,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default Report;
+export default WeeklyReport;

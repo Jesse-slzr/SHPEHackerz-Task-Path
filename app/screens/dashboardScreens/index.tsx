@@ -105,7 +105,7 @@ const DashboardScreen = () => {
 
     const handleGenerateReport = () => {
         router.push({
-            pathname: '/screens/dashboardScreens/report',
+            pathname: '/screens/dashboardScreens/WeeklyReport',
             params: {
                 kidId: selectedKid?.kidId,
                 kidName: selectedKid?.name,
@@ -390,7 +390,7 @@ const DashboardScreen = () => {
                 />
                 {hasCompletedTasks() && (
                     <Pressable style={styles.reportButton} onPress={handleGenerateReport}>
-                        <Text style={styles.reportButtonText}>Show Full Report</Text>
+                        <Text style={styles.reportButtonText}>Full Weekly Report</Text>
                     </Pressable>
                 )}
             </View>
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
         borderRightWidth: 4,
         borderRightColor: '#A8D5BA',
         borderRadius: 20,
-        width: '35%',
+        width: '45%',
         alignSelf: 'center'
     },
     reportButtonText: {
