@@ -42,15 +42,22 @@ const Page = () => {
     // settings page for user - buttons for the following: profile, sign out 
     // back to dashboard, and a toggle for light/dark mode (to be replaced with menu later)
 	return (
-		<View>
+		<View style={styles.container}>
             <Image
                 source={require('@/assets/images/kel.png')}
                 style={styles.profileImage}
             />
             <Text style={[styles.mainText]}>Logged in as {user?.email}</Text>
-            <TouchableOpacity style={[styles.buttonContainer]}>
-                <Text style={[styles.buttonText]}>Profile</Text>
-            </TouchableOpacity>
+            <Pressable
+                onPress={() =>
+                    router.push({
+                    pathname: '/(auth)/ProfileScreen',
+                    })
+                }
+                style={styles.buttonContainer}
+                >
+                <Text style={styles.buttonText}>Profile</Text>
+            </Pressable>
 			<TouchableOpacity onPress={() => setSignOutModalVisible(true)} style={[styles.buttonContainer]}>
                 <FontAwesomeIcon icon={faSignOutAlt} size={24} color="#f44336"/>
                 <Text style={styles.buttonText}>Sign out</Text>
@@ -110,6 +117,11 @@ const Page = () => {
 };
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        padding: 20,
+        backgroundColor: '#FFF',
+    },
     mainText: {
         fontSize: 18,
         fontWeight: 'bold',

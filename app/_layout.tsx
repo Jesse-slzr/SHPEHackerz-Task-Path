@@ -34,7 +34,7 @@ export default function RootLayout() {
 
 		const inAuthGroup = segments[0] === '(auth)';
         const inScreensGroup = segments[0] === 'screens';
-        const inSignOut = segments[1] === 'SignOut' || segments[1] === 'SignOutKids';
+        const inSignOut = segments[1] === 'SignOut' || segments[1] === 'SignOutKids' || segments[1] === 'ProfileScreen';
         const isOnDashboard = segments[1] === 'dashboardScreens';
         const isOnKidsView = segments[1] === 'kidsViewScreens';
 
