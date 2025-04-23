@@ -34,6 +34,8 @@ const ProfileScreen = () => {
     const [reauthModalVisible, setReauthModalVisible] = useState(false);
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [passwordErrorVisible, setPasswordErrorVisible] = useState(false);
+    const [errorMessage, setErrorMessage] = useState(''); 
     const router = useRouter();
     const auth = FIREBASE_AUTH();
     const user = auth.currentUser;
@@ -59,7 +61,7 @@ const ProfileScreen = () => {
                 setName(data.name);
             }
         }, (error) => {
-            console.error('Error fetching parent data:', error);
+            // console.error('Error fetching parent data:', error);
             Alert.alert('Error', 'Failed to load profile data.');
         });
 
@@ -83,7 +85,7 @@ const ProfileScreen = () => {
             }
             Alert.alert('Success', 'Profile updated successfully!');
         } catch (error: FirebaseError | any) {
-            console.error('Error updating profile:', error);
+            // console.error('Error updating profile:', error);
             Alert.alert('Error', 'Failed to update profile: ' + error.message);
         } finally {
             setLoading(false);
@@ -102,8 +104,13 @@ const ProfileScreen = () => {
             setPassword('');
             await handleDeactivateAccount();
         } catch (error: FirebaseError | any) {
-            console.error('Error re-authenticating:', error);
-            Alert.alert('Error', 'Re-authentication failed: ' + error.message);
+            // console.error('Error re-authenticating:', error);
+            if (error.code === 'auth/wrong-password') {
+                setErrorMessage('Incorrect password. Please try again.');
+            } else {
+                setErrorMessage('Re-authentication failed. Please try again later.');
+            }
+            setPasswordErrorVisible(true);
         } finally {
             setLoading(false);
         }
@@ -121,7 +128,7 @@ const ProfileScreen = () => {
             Alert.alert('Success', 'Account deactivated successfully.');
             router.replace('/(auth)/Login');
         } catch (error: FirebaseError | any) {
-            console.error('Error deactivating account:', error);
+            // console.error('Error deactivating account:', error);
             Alert.alert('Error', 'Failed to deactivate account: ' + error.message);
         } finally {
             setLoading(false);
@@ -212,36 +219,52 @@ const ProfileScreen = () => {
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Re-authenticate</Text>
-                        <Text style={styles.modalText}>
-                            Please enter your password to confirm your identity before deactivating your account.
-                        </Text>
-                        <TextInput
-                            style={styles.input}
-                            value={password}
-                            onChangeText={setPassword}
-                            placeholder="Enter your password"
-                            secureTextEntry
-                            editable={!loading}
-                        />
-                        <View style={styles.modalButtonRow}>
-                            <TouchableOpacity
-                                style={[styles.modalButton, styles.cancelButton]}
-                                onPress={() => {
-                                    setReauthModalVisible(false);
-                                    setPassword('');
-                                }}
-                            >
-                                <Text style={styles.modalButtonText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.modalButton, styles.confirmButton]}
-                                onPress={handleReauthenticate}
-                                disabled={loading || !password}
-                            >
-                                <Text style={styles.modalButtonText}>Confirm</Text>
-                            </TouchableOpacity>
-                        </View>
+                    {passwordErrorVisible ? (
+                            // ADDED: Custom error popup within the modal
+                            <View style={styles.errorPopup}>
+                                <Text style={styles.errorPopupText}>{errorMessage}</Text>
+                                <TouchableOpacity
+                                    style={styles.errorPopupButton}
+                                    onPress={() => setPasswordErrorVisible(false)}
+                                >
+                                    <Text style={styles.errorPopupButtonText}>Try Again</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <>
+                                <Text style={styles.modalTitle}>Re-authenticate</Text>
+                                <Text style={styles.modalText}>
+                                    Please enter your password to confirm your identity before deactivating your account.
+                                </Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={password}
+                                    onChangeText={setPassword}
+                                    placeholder="Enter your password"
+                                    secureTextEntry
+                                    editable={!loading}
+                                />
+                                <View style={styles.modalButtonRow}>
+                                    <TouchableOpacity
+                                        style={[styles.modalButton, styles.cancelButton]}
+                                        onPress={() => {
+                                            setReauthModalVisible(false);
+                                            setPassword('');
+                                            setPasswordErrorVisible(false); // Reset error state on cancel
+                                        }}
+                                    >
+                                        <Text style={styles.modalButtonText}>Cancel</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.modalButton, styles.confirmButton]}
+                                        onPress={handleReauthenticate}
+                                        disabled={loading || !password}
+                                    >
+                                        <Text style={styles.modalButtonText}>Confirm</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </>
+                        )}
                     </View>
                 </View>
             </Modal>
@@ -378,6 +401,28 @@ const styles = StyleSheet.create({
         backgroundColor: '#4CAF50',
     },
     modalButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    errorPopup: {
+        alignItems: 'center',
+    },
+    errorPopupText: {
+        fontSize: 16,
+        color: '#f44336',
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    errorPopupButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 25,
+        borderRadius: 8,
+        backgroundColor: '#A8D5BA',
+        alignItems: 'center',
+        minWidth: 100,
+    },
+    errorPopupButtonText: {
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',

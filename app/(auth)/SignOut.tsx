@@ -47,7 +47,7 @@ const Page = () => {
                 source={require('@/assets/images/kel.png')}
                 style={styles.profileImage}
             />
-            <Text style={[styles.mainText]}>Logged in as {user?.email}</Text>
+            <Text style={[styles.mainText]}>{user?.email}</Text>
             <Pressable
                 onPress={() =>
                     router.push({
@@ -76,13 +76,13 @@ const Page = () => {
                 <FontAwesomeIcon icon={faArrowLeft} size={24} color="#A8D5BA" />
                 <Text style={styles.buttonText}>Back to Dashboard</Text>
             </TouchableOpacity>
-	        <View style={styles.switchContainer}>
+	        {/* <View style={styles.switchContainer}>
                 <Text style={[styles.switchText]}>Light Mode</Text>
                     <Switch
                         thumbColor="#fff"
                     />
                 <Text style={[styles.switchText]}>Dark Mode</Text>
-            </View>
+            </View> */}
             <Modal
                 visible={signOutModalVisible}
                 animationType="slide"

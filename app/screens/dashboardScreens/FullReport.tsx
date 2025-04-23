@@ -243,33 +243,6 @@ const FullReportScreen = () => {
   const height = 220;
   const padding = 40;
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text>Loading Report...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text>{error}</Text>
-      </View>
-    );
-  }
-
-  if (!userId) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text>No authenticated user found. Please log in.</Text>
-      </View>
-    );
-  }
-
-  const completionTrend = processTaskCompletionTrend();
-  const timeSpentByDay = processTimeSpentByDay();
-
   const chartConfig = {
     backgroundGradientFrom: '#fff',
     backgroundGradientTo: '#fff',
@@ -281,7 +254,7 @@ const FullReportScreen = () => {
     propsForLines: { strokeWidth: 0 },
   };
 
-  const maxTasks = Math.max(...completionTrend.data, 4);
+  const maxTasks = Math.max(...processTaskCompletionTrend().data, 4);
   const yAxisMax = Math.ceil(maxTasks / 2) * 2;
 
   // Scales for Graph 6
@@ -312,158 +285,172 @@ const FullReportScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Pressable onPress={() => router.push('../../(auth)/SignOut')} style={styles.backButton}>
           <FontAwesomeIcon icon={faArrowLeft} size={24} color="#333" />
         </Pressable>
         <Text style={styles.headerText}>Parent Report</Text>
       </View>
 
-      <ScrollView style={styles.container}>
-        <View style={styles.kidTabsContainer}>
-          <Text style={styles.kidTabsLabel}>Select Child:</Text>
-          <FlatList
-            horizontal
-            data={kids}
-            keyExtractor={(item) => item.kidId}
-            renderItem={({ item: kid }) => (
-              <TouchableOpacity
-                style={[
-                  styles.kidTab,
-                  selectedKid?.kidId === kid.kidId ? styles.selectedKidTab : null,
-                ]}
-                onPress={() => setSelectedKid(kid)}
-              >
-                <Text
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <Text>Loading Report...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : !userId ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>No authenticated user found. Please log in.</Text>
+        </View>
+      ) : (
+        <ScrollView style={styles.container}>
+          <View style={styles.kidTabsContainer}>
+            <Text style={styles.kidTabsLabel}>Select Child:</Text>
+            <FlatList
+              horizontal
+              data={kids}
+              keyExtractor={(item) => item.kidId}
+              renderItem={({ item: kid }) => (
+                <TouchableOpacity
                   style={[
-                    styles.kidTabText,
-                    selectedKid?.kidId === kid.kidId ? styles.selectedKidTabText : null,
+                    styles.kidTab,
+                    selectedKid?.kidId === kid.kidId ? styles.selectedKidTab : null,
                   ]}
+                  onPress={() => setSelectedKid(kid)}
                 >
-                  {kid.name}
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    style={[
+                      styles.kidTabText,
+                      selectedKid?.kidId === kid.kidId ? styles.selectedKidTabText : null,
+                    ]}
+                  >
+                    {kid.name}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              contentContainerStyle={styles.kidTabsContentContainer}
+            />
+            {selectedKid ? (
+              <View style={styles.kidDetailsContainer}>
+                <Text style={styles.kidDetailsText}>Reports for: {selectedKid.name}</Text>
+              </View>
+            ) : (
+              <Text style={styles.noKidsText}>No kids available</Text>
             )}
-            contentContainerStyle={styles.kidTabsContentContainer}
-          />
-          {selectedKid ? (
-            <View style={styles.kidDetailsContainer}>
-              <Text style={styles.kidDetailsText}>Reports for: {selectedKid.name}</Text>
-            </View>
-          ) : (
-            <Text style={styles.noKidsText}>No kids available</Text>
-          )}
-        </View>
+          </View>
 
-        {/* Graph 1: Task Completion Trend */}
-        <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>Task Completion Trend (Last 7 Weeks)</Text>
-          <LineChart
-            data={{
-              labels: completionTrend.labels,
-              datasets: [{ data: completionTrend.data }],
-            }}
-            width={screenWidth - 40}
-            height={220}
-            yAxisLabel=""
-            yAxisSuffix=" tasks"
-            fromZero={true}
-            yAxisInterval={2}
-            fromNumber={yAxisMax}
-            chartConfig={chartConfig}
-            bezier
-            style={styles.chart}
-          />
-        </View>
+          {/* Graph 1: Task Completion Trend */}
+          <View style={styles.chartContainer}>
+            <Text style={styles.chartTitle}>Task Completion Trend (Last 7 Weeks)</Text>
+            <LineChart
+              data={{
+                labels: processTaskCompletionTrend().labels,
+                datasets: [{ data: processTaskCompletionTrend().data }],
+              }}
+              width={screenWidth - 40}
+              height={220}
+              yAxisLabel=""
+              yAxisSuffix=" tasks"
+              fromZero={true}
+              yAxisInterval={2}
+              fromNumber={yAxisMax}
+              chartConfig={chartConfig}
+              bezier
+              style={styles.chart}
+            />
+          </View>
 
-        {/* Graph 3: Time Spent by Week */}
-        <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>Time Spent by Week (Last 7 Weeks)</Text>
-          <LineChart
-            data={timeSpentByDay}
-            width={screenWidth - 40}
-            height={220}
-            yAxisLabel=""
-            yAxisSuffix=" min"
-            fromZero={true}
-            chartConfig={chartConfig}
-            bezier
-            style={styles.chart}
-          />
-        </View>
+          {/* Graph 3: Time Spent by Week */}
+          <View style={styles.chartContainer}>
+            <Text style={styles.chartTitle}>Time Spent by Week (Last 7 Weeks)</Text>
+            <LineChart
+              data={processTimeSpentByDay()}
+              width={screenWidth - 40}
+              height={220}
+              yAxisLabel=""
+              yAxisSuffix=" min"
+              fromZero={true}
+              chartConfig={chartConfig}
+              bezier
+              style={styles.chart}
+            />
+          </View>
 
-        {/* Graph 6: Task Completion Time vs Difficulty Rating */}
-        <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>Task Completion Time vs Difficulty Rating</Text>
-          {scatterData.length > 0 ? (
-            <>
-              <Svg width={width} height={height}>
-                {/* X-axis */}
-                <Line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#333" strokeWidth="2" />
-                <SvgText x={width / 2} y={height - 10} textAnchor="middle" fontSize="12">Difficulty Rating</SvgText>
+          {/* Graph 6: Task Completion Time vs Difficulty Rating */}
+          <View style={styles.chartContainer}>
+            <Text style={styles.chartTitle}>Task Completion Time vs Difficulty Rating</Text>
+            {scatterData.length > 0 ? (
+              <>
+                <Svg width={width} height={height}>
+                  {/* X-axis */}
+                  <Line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#333" strokeWidth="2" />
+                  <SvgText x={width / 2} y={height - 10} textAnchor="middle" fontSize="12">Difficulty Rating</SvgText>
 
-                {/* Y-axis */}
-                <Line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#333" strokeWidth="2" />
-                <SvgText x={10} y={height / 2} textAnchor="middle" fontSize="12" transform={`rotate(-90, 10, ${height / 2})`}>Time to Complete (min)</SvgText>
+                  {/* Y-axis */}
+                  <Line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#333" strokeWidth="2" />
+                  <SvgText x={10} y={height / 2} textAnchor="middle" fontSize="12" transform={`rotate(-90, 10, ${height / 2})`}>Time to Complete (min)</SvgText>
 
-                {/* X-axis labels */}
-                {[1, 2, 3, 4, 5].map(rating => (
-                  <SvgText
-                    key={rating}
-                    x={xScale(rating)}
-                    y={height - padding + 15}
-                    textAnchor="middle"
-                    fontSize="10"
-                    fill="#333"
-                  >
-                    {rating}
-                  </SvgText>
-                ))}
+                  {/* X-axis labels */}
+                  {[1, 2, 3, 4, 5].map(rating => (
+                    <SvgText
+                      key={rating}
+                      x={xScale(rating)}
+                      y={height - padding + 15}
+                      textAnchor="middle"
+                      fontSize="10"
+                      fill="#333"
+                    >
+                      {rating}
+                    </SvgText>
+                  ))}
 
-                {/* Y-axis labels with dynamic ticks */}
-                {yTicks.map(time => (
-                  <SvgText
-                    key={time}
-                    x={padding - 10}
-                    y={yScale(time) + 5}
-                    textAnchor="end"
-                    fontSize="10"
-                    fill="#333"
-                  >
-                    {time}
-                  </SvgText>
-                ))}
+                  {/* Y-axis labels with dynamic ticks */}
+                  {yTicks.map(time => (
+                    <SvgText
+                      key={time}
+                      x={padding - 10}
+                      y={yScale(time) + 5}
+                      textAnchor="end"
+                      fontSize="10"
+                      fill="#333"
+                    >
+                      {time}
+                    </SvgText>
+                  ))}
 
-                {/* Data points with task-specific colors */}
-                {scatterData.map((item, index) => (
-                  <Circle
-                    key={index}
-                    cx={xScale(item.x ?? 0)}
-                    cy={yScale(item.y ?? 0)}
-                    r={5}
-                    fill={taskColorMap.get(item.taskName) || '#A8D5BA'}
-                  />
-                ))}
-              </Svg>
-              {/* Legend */}
-              <FlatList
-                data={uniqueTasks.map(task => ({ taskName: task, color: taskColorMap.get(task) || '#A8D5BA' }))}
-                keyExtractor={(item) => item.taskName}
-                renderItem={({ item }) => (
-                  <View style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-                    <Text style={styles.legendText}>{item.taskName}</Text>
-                  </View>
-                )}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.legendContainer}
-              />
-            </>
-          ) : (
-            <Text>No difficulty rating data available.</Text>
-          )}
-        </View>
-      </ScrollView>
+                  {/* Data points with task-specific colors */}
+                  {scatterData.map((item, index) => (
+                    <Circle
+                      key={index}
+                      cx={xScale(item.x ?? 0)}
+                      cy={yScale(item.y ?? 0)}
+                      r={5}
+                      fill={taskColorMap.get(item.taskName) || '#A8D5BA'}
+                    />
+                  ))}
+                </Svg>
+                {/* Legend */}
+                <FlatList
+                  data={uniqueTasks.map(task => ({ taskName: task, color: taskColorMap.get(task) || '#A8D5BA' }))}
+                  keyExtractor={(item) => item.taskName}
+                  renderItem={({ item }) => (
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                      <Text style={styles.legendText}>{item.taskName}</Text>
+                    </View>
+                  )}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.legendContainer}
+                />
+              </>
+            ) : (
+              <Text>No difficulty rating data available.</Text>
+            )}
+          </View>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 };
@@ -562,6 +549,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#fff', // MODIFIED: Added background color to match the main container
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff', // ADDED: Ensure consistent background
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#888',
+    textAlign: 'center',
+    padding: 15,
   },
   legendContainer: {
     marginTop: 10,
