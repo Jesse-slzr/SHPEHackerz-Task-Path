@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginTop: 5,
         left: 10,
-        color: '#666',
+        color: '#333',
     },
     buttonContainer: {
         flexDirection: 'row',
@@ -604,7 +604,7 @@ const styles = StyleSheet.create({
     buttonText: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#333',
+        color: '#000',
     },
     tasksButton: {
         backgroundColor: '#fff',
@@ -643,12 +643,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 10,
         borderRadius: 5,
-        backgroundColor: '#4CAF50',
+        backgroundColor: '#58b65c',
         minWidth: 120,
         alignItems: 'center',
     },
     timerButtonText: {
-        color: 'white',
+        color: 'black',
         fontWeight: 'bold',
         fontSize: 16,
     },
@@ -656,10 +656,10 @@ const styles = StyleSheet.create({
         backgroundColor: '#4CAF50',
     },
     pauseButton: {
-        backgroundColor: '#f44336',
+        backgroundColor: '#FF5f57',
     },
     resetButton: {
-        backgroundColor: '#2196F3',
+        backgroundColor: '#51abf6',
     },
     finishButton: {
         backgroundColor: '#FF9800',
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
         color: '#4CAF50',
     },
     claimText: { 
-        color: 'white', 
+        color: 'black', 
         fontWeight: 'bold' 
     },
     taskDescription: {
@@ -689,7 +689,7 @@ const styles = StyleSheet.create({
     taskReward: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#555',
+        color: '#333',
     },
     modalContainer: {
         flex: 1,
@@ -714,19 +714,19 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: '#333',
+        color: '#000',
         textAlign: 'center',
         marginBottom: 10,
     },
     modalText: {
         fontSize: 20,
-        color: '#666',
+        color: '#333',
         textAlign: 'center',
         marginBottom: 20,
     },
     modalTaskName: {
         fontWeight: 'bold',
-        color: '#FFF',
+        color: '#000',
     },
     modalButtons: {
         flexDirection: 'row',
@@ -758,7 +758,7 @@ const styles = StyleSheet.create({
         borderColor: '#FFFFFF',
     },
     submitButton: {
-        backgroundColor: '#2196F3',
+        backgroundColor: '#51abf6',
         borderColor: '#FFFFFF',
     },
     disabledButton: {
@@ -766,12 +766,15 @@ const styles = StyleSheet.create({
         borderColor: '#999',
     },
     modalButtonText: {
-        color: '#FFF',
+        color: '#000',
         fontSize: 20,
         fontWeight: 'bold',
         textTransform: 'uppercase',
     },
     ratingContainer: {
+        backgroundColor: '#214534',
+        borderRadius: 15,
+        paddingVertical: 15,
         flexDirection: 'row',
         justifyContent: 'space-around',
         width: '100%',

@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginTop: 5,
         left: 10,
-        color: '#666',
+        color: '#333',
     },
     avatar: {
         width: 80,
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     buttonText: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#333',
+        color: '#000',
     },
     rewardsButton: {
         backgroundColor: '#fff',
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
         color: '#4CAF50',
     },
     claimText: { 
-        color: 'white', 
+        color: '#06411d',
         fontWeight: 'bold' 
     },
     rewardDescription: {
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
     rewardCost: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#555',
+        color: '#333',
     },
     modalContainer: {
         flex: 1,
@@ -483,13 +483,13 @@ const styles = StyleSheet.create({
     },
     modalClaimText: { 
         fontSize: 20,
-        color: '#666',
+        color: '#333',
         textAlign: 'center',
         marginBottom: 20,
     },
     modalRewardName: {
         fontWeight: 'bold',
-        color: '#FFF',
+        color: '#06411d',
     },
     modalRewardText: {
         fontSize: 30,
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
         borderColor: '#FFFFFF',
     },
     modalButtonText: {
-        color: '#fff',
+        color: '#000',
         fontSize: 20,
         fontWeight: 'bold',
         textTransform: 'uppercase',

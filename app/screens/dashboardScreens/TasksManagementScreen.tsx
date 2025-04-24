@@ -649,10 +649,10 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     buttonSave: {
-        backgroundColor: '#2196F3' 
+        backgroundColor: '#51abf6'
     },
     buttonDelete: {
-        backgroundColor: '#FF3B30'
+        backgroundColor: '#FF5f57'
     },
     buttonClose: {
         backgroundColor: '#A8D5BA',
@@ -660,7 +660,7 @@ const styles = StyleSheet.create({
         borderRadius: 10
     },
     textStyle: {
-        color: 'white',
+        color: 'black',
         fontWeight: 'bold',
         textAlign: 'center'
     },

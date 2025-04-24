@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     },
     selectedTabText: {
         fontWeight: 'bold',
-        color: '#FFF',
+        color: '#000',
     },
     tabsContentContainer: {
         paddingHorizontal: 10,

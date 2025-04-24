@@ -194,12 +194,12 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: '#333',
+        color: '#000',
         marginBottom: 15,
     },
     modalText: {
         fontSize: 16,
-        color: '#666',
+        color: '#333',
         textAlign: 'center',
         marginBottom: 20,
     },
@@ -219,10 +219,10 @@ const styles = StyleSheet.create({
         backgroundColor: '#4CAF50',
     },
     cancelButton: {
-        backgroundColor: '#f44336',
+        backgroundColor: '#FF5f57',
     },
     modalButtonText: {
-        color: '#fff',
+        color: '#000',
         fontSize: 16,
         fontWeight: 'bold',
     },

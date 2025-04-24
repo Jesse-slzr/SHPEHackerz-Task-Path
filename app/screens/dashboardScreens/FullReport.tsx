@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
   },
   selectedKidTabText: {
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#000',
   },
   kidTabsContentContainer: {
     paddingHorizontal: 5,

@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
         marginVertical: 10,
     },
     dateHighlight: {
-        color: '#4CAF50',
+        color: '#4d4d4d',
         fontWeight: 'bold',
     },
     insightsSection: {
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     },
     insightText: {
         fontSize: 16,
-        color: '#666',
+        color: '#4d4d4d',
         marginBottom: 5,
     },
     chartSection: {
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     },
     taskDetail: {
         fontSize: 16,
-        color: '#666',
+        color: '#4d4d4d',
     },
     noTasks: {
         fontSize: 16,

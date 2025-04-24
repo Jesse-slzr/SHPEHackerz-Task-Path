@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     buttonText: {
         fontSize: 18,
         fontWeight: '500',
-        color: '#fff',
+        color: '#000',
     },
     deactivateButton: {
         flexDirection: 'row',
