@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, ActivityIndicator, FlatList, TextInput, StyleSheet, Pressable, Modal, Alert, Keyboard, KeyboardAvoidingView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { FontAwesome } from '@expo/vector-icons';
-import { faTasks, faChild, faGift, faHouse, faPlus, faUndo } from '@fortawesome/free-solid-svg-icons';
+import { faTasks, faChild, faGift, faHouse, faPlus, faUndo, faMinus, faPlusCircle } from '@fortawesome/free-solid-svg-icons';
 import { useRouter } from 'expo-router';
 import { FIREBASE_DB as FIRESTORE_DB } from '../../../FirebaseConfig';
 import { query, where, getDocs, collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
@@ -91,12 +91,12 @@ const KidScreen = () => {
         }
     };
 
-    const updateKid = async (kid: Kid, kidId: string, updatedName: string, updatedAge: string) => {
+    const updateKid = async (kid: Kid, kidId: string, updatedName: string, updatedAge: string, updatedCoinCount: number) => {
         try {
             const kidRef = doc(FIRESTORE_DB, 'Kids', kid.docId);
-            await updateDoc(kidRef, { name: updatedName, age: parseFloat(updatedAge) || 0 });
+            await updateDoc(kidRef, { name: updatedName, age: parseFloat(updatedAge) || 0, coinCount: updatedCoinCount });
             setKids((prevKids) => prevKids.map((kid) =>
-                kid.kidId === kidId ? { ...kid, name: updatedName, age: parseFloat(updatedAge) || 0 } : kid
+                kid.kidId === kidId ? { ...kid, name: updatedName, age: parseFloat(updatedAge) || 0, coinCount: updatedCoinCount } : kid
             ));
             setModalVisible(false);
             setSelectedKid(null);
@@ -171,13 +171,21 @@ const KidScreen = () => {
 
     const handleSave = () => {
         if (selectedKid) {
-            updateKid(selectedKid, selectedKid.kidId, selectedKid.name, selectedKid.age.toString());
+            const newCoinCount = selectedKid.coinCount < 0 ? 0 : selectedKid.coinCount;
+            updateKid(selectedKid, selectedKid.kidId, selectedKid.name, selectedKid.age.toString(), newCoinCount);
         }
     };
 
     const handleDelete = () => {
         if (selectedKid) {
             deleteKid(selectedKid);
+        }
+    };
+
+    const adjustCoinCount = (amount: number) => {
+        if (selectedKid) {
+            const newCoinCount = selectedKid.coinCount + amount;
+            setSelectedKid((prev) => ({ ...prev, coinCount: newCoinCount } as Kid));
         }
     };
 
@@ -202,7 +210,7 @@ const KidScreen = () => {
                 <Text style={styles.title}>Manage Kids</Text>
                 <FlatList
                     data={kids}
-                    keyExtractor={(item) => item.kidId || item.docId}
+                    keyExtractor={(item) => item.docId}
                     renderItem={renderKid}
                 />
 
@@ -242,6 +250,28 @@ const KidScreen = () => {
                                 returnKeyType="done"
                                 onSubmitEditing={() => Keyboard.dismiss()}
                             />
+                            <Text style={styles.modalSubTitle}>Coin Count:</Text>
+                            <View style={styles.coinInputContainer}>
+                                <Pressable onPress={() => adjustCoinCount(-1)} style={styles.coinAdjustButton}>
+                                    <FontAwesomeIcon icon={faMinus} size={16} color="#333" />
+                                </Pressable>
+                                <TextInput
+                                    style={[styles.input, styles.coinInput]}
+                                    placeholder="Coin count"
+                                    placeholderTextColor="#333"
+                                    keyboardType="numeric"
+                                    value={selectedKid ? String(selectedKid.coinCount) : '0'}
+                                    onChangeText={(text) => setSelectedKid((prev) => ({
+                                        ...prev,
+                                        coinCount: parseInt(text.replace(/[^0-9]/g, '')) || 0
+                                    } as Kid | null))}
+                                    returnKeyType="done"
+                                    onSubmitEditing={() => Keyboard.dismiss()}
+                                />
+                                <Pressable onPress={() => adjustCoinCount(1)} style={styles.coinAdjustButton}>
+                                    <FontAwesomeIcon icon={faPlusCircle} size={16} color="#333" />
+                                </Pressable>
+                            </View>
 
                             <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
                                 <Text style={styles.textStyle}>Save</Text>
@@ -415,6 +445,22 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         padding: 10,
         marginBottom: 10,
+    },
+    coinInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '100%',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+    },
+    coinInput: {
+        flex: 1,
+        marginHorizontal: 10,
+    },
+    coinAdjustButton: {
+        padding: 10,
+        backgroundColor: '#f5f5f5',
+        borderRadius: 5,
     },
     button: {
         width: '50%',

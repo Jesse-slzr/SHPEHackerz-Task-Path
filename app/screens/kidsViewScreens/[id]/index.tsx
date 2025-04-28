@@ -521,7 +521,7 @@ const KidScreen = () => {
                                     <FontAwesomeIcon
                                         icon={star <= (selectedRating || 0) ? faStarSolid : faStarRegular}
                                         size={30}
-                                        color={star <= (selectedRating || 0) ? '#FFD700' : '#ccc'}
+                                        color={star <= (selectedRating || 0) ? '#FFD700' : '#999999'}
                                     />
                                 </Pressable>
                             ))}

@@ -182,16 +182,18 @@ const TaskScreen = () => {
                         <Text style={styles.taskName}>{item.name}</Text>
                         <View style={styles.kidBubblesContainer}>
                             {item.childIds.length > 0 ? (
-                                item.childIds.map((id) => {
-                                    const kid = kids.find(k => k.kidId === id);
-                                    return (
-                                        <View key={id} style={styles.kidBubble}>
-                                            <Text style={styles.kidBubbleText}>
-                                                {kid?.name || id}
-                                            </Text>
-                                        </View>
-                                    );
-                                })
+                                item.childIds
+                                    .filter((id) => kids.find((k) => k.kidId === id)) // Only include valid kidIds
+                                    .map((id) => {
+                                        const kid = kids.find((k) => k.kidId === id);
+                                        return (
+                                            <View key={id} style={styles.kidBubble}>
+                                                <Text style={styles.kidBubbleText}>
+                                                    {kid?.name || 'Unknown'}
+                                                </Text>
+                                            </View>
+                                        );
+                                    })
                             ) : (
                                 <View style={[styles.kidBubble, styles.noneBubble]}>
                                     <Text style={styles.kidBubbleText}>None</Text>
