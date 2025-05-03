@@ -772,7 +772,7 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     ratingContainer: {
-        backgroundColor: '#214534',
+        backgroundColor: '#477b4f',
         borderRadius: 15,
         paddingVertical: 15,
         flexDirection: 'row',
